@@ -1,0 +1,50 @@
+Look up Salome manual 
+
+Input/output (S11 & S21):
+	- hit create group and then can go with that 
+
+
+
+
+
+after meshing
+convert to quadratic elements (for better accuracy)
+create group form geometry
+we know tehre are two ports but need to add them to teh mesh
+Reason why we use ENTREE and SORTIE is enforce boundary conditions
+doesn't matter which node we grab, variance is small 
+
+
+create group and click on nodes and click add 
+
+
+OFFFICIAL
+-ignore the warnings
+Geometry:
+	- cerate whatever geometry you need
+	- put entree and sortee as a face (should be a face not a node here)
+
+- from here generate mesh based on your geometry 
+	
+
+Mesh:
+	- Create groups from geometry to get ENTREE AND SORTEEE
+	- Then use create group in mesh to get the node numbers 
+		- keep track of the node numbers mapping entree to entree and sortee to sortee 
+
+
+
+
+each experiment you run will need need a comm and export file
+-export: specify each of the files 
+-comm: specifies which experiment you want to run 
+
+	- few parameters
+		low
+		high frequency
+		delta frequency
+
+
+
+- also be careful with the export file:
+	- the first entry is a cache so need to be wary that you're not overwriting something that you shouldn't be 
