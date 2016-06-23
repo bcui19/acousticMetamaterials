@@ -7,6 +7,7 @@ import os
 
 
 #just some random constants used for formatting from code_aster
+FILE_OFFSET = 59
 OFFSET_INDEX = 2 #how far from template2 to the key line  
 KEY_INDEX = 7 #Where in the key line is the key located
 TABLE_OFFSET_KEY = 2 #how many lines from the key line do I start
@@ -18,8 +19,6 @@ blank_line = ['', '']
 blank = ''
 
 class code_aster(object):
-	
-
 	def __init__(self, filename, lineStart):
 		dir = os.path.dirname(__file__)
 		self.file = filename
@@ -28,13 +27,14 @@ class code_aster(object):
 		self.presDict = {}
 		self.loadData(lineStart)
 
+	def getDicts(self):
+		return self.intxDict, self.presDict
 
 	#takes in a list which represents a line and removes the blanks
 	#returns a map from the node to the corresponding values
 	#assumes the line is either pressure or the other field character
 	def remBlanks(self, line):
 		key = line[1]
-		# print "key is:", key
 		tempList = []
 		returnDict = {}
 		for i in range(2,len(line)):
@@ -82,7 +82,6 @@ class code_aster(object):
 	#Start index will be passed in as the index in lines to template1
 	def parseData(self, lines, startIndex):
 		counter = 0
-		# offset = self.findOffset(lines, startIndex) + OFFSET_INDEX
 		currKey, offset = self.getKey(lines, startIndex) #startIndex including offset
 		#Gets information from the first table
 		offset, tempList = self.createMapping(lines, startIndex, offset)
@@ -110,12 +109,18 @@ class code_aster(object):
 
 
 
+#currently parses out code from the .resu file from code_aster and then puts the resultant data structures into
+#two separate dictionaries where they are lists of dictionaries
+#does this for a singular file
+def main(filename):
+	file = code_aster(filename, FILE_OFFSET)
+	intxDict, presDict = file.getDicts()
+	# print intxDict
+	return intxDict, presDict
+	# files = code_aster("test_output.resu", FILE_OFFSET)
+	# intxDict, presDict = files.getDicts()
+	# print intxDict
+	# return intxDict, presDict
 
-
-
-
-def main():
-	files = code_aster("test_output.resu", 59)
-
-main()
+# main()
 
