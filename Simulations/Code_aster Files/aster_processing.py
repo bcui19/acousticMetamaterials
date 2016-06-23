@@ -111,16 +111,11 @@ class code_aster(object):
 
 #currently parses out code from the .resu file from code_aster and then puts the resultant data structures into
 #two separate dictionaries where they are lists of dictionaries
-#does this for a singular file
+#does this for a single file
 def main(filename):
 	file = code_aster(filename, FILE_OFFSET)
 	intxDict, presDict = file.getDicts()
-	# print intxDict
 	return intxDict, presDict
-	# files = code_aster("test_output.resu", FILE_OFFSET)
-	# intxDict, presDict = files.getDicts()
-	# print intxDict
-	# return intxDict, presDict
 
 # main()
 
