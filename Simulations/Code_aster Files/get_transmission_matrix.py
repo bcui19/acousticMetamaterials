@@ -1,5 +1,6 @@
 import os 
 import aster_processing as ap
+import check_transmission_matrix as checkMatrix
 import numpy as np
 import copy
 
@@ -43,13 +44,11 @@ class transmissionMatrix(object):
 	def getAster(self):
 		currMatrix = [{}] * NUM_CYCLES**2
 		self.transmission = {}
-		# print "len of self.args is: ", len(self.args)
 		for i in range(len(self.args)):
 			filePath = os.path.join(self.dir, self.args[i])
 			print filePath
 			intxDict, presDict = ap.main(filePath) #gets the intensity and pressure Dict for the given file 
 
-			# print presDict
 			#resetting the current Matrix to read in new files 
 			if i % NUM_CYCLES == 0:
 				print "in if:\n"
@@ -60,7 +59,7 @@ class transmissionMatrix(object):
 
 		tempDict1 = currMatrix[0]
 		tempDict2 = currMatrix[3]
-		print "yes" if cmp(tempDict1, tempDict2) == 0 else "no"
+		print "values are different" if cmp(tempDict1, tempDict2) == 0 else "values are the same"
 		self.transmission = currMatrix #stores the data structure properly in the class
 
 	#for a given presFile, this iteratively produces the proper transmission matrix
@@ -83,7 +82,7 @@ class transmissionMatrix(object):
 		for node in presVect:
 			tempKeys = node.keys() #note there will be only one key
 			key = tempKeys[0]
-			nodeDict[key] = float(node[key][0 if counter == 0 else 1])
+			nodeDict[key] = float(node[key][0 if counter == 0 else 1])/self.inputVelocity
 		return nodeDict
 
 	#finds the "dot product" between an array and the pressure vector
@@ -106,17 +105,21 @@ class transmissionMatrix(object):
 	def createMatrix(self, currFreq, presVect, parity, transMatrix):
 		return self.dotProduct(currFreq, presVect, parity, transMatrix)
 
-#Used to check the similarity to make sure any linear combination works 
-def checkSimilarity(tm1, tm2):
-	# print "tm1 is: ", tm1, "\n\n\n"
-	# print "tm2 is: ", tm2, "\n\n\n"
-	print "same" if cmp(tm1, tm2) == 0 else "different"
 
 def main():
 	tm = transmissionMatrix("filenames.txt", 1)
+	tm3 = transmissionMatrix("velocity3.txt", 3)
 	tm5 = transmissionMatrix("newVelocities.txt",5)
 	rtm = tm.returnTransmissionMatrix()
-	rtm5 = tm.returnTransmissionMatrix()
-	checkSimilarity(rtm, rtm5)
+	rtm3 = tm3.returnTransmissionMatrix()
+	rtm5 = tm5.returnTransmissionMatrix()
+	checkMatrix.main(rtm, rtm5)
+	checkMatrix.main(rtm3, rtm)
+	checkMatrix.main(rtm3, rtm5)
+	# checkSimilarity(rtm)
 	# print rtm
+
+
+
 main()
+
