@@ -79,7 +79,7 @@ fake_zero = 0.0
 # here VITE_FACE is vibration velocity field
 CHARACOU=AFFE_CHAR_ACOU( MODELE=GUIDE,
                          VITE_FACE=( _F( GROUP_MA = 'ENTREE', 
-                                       VNOR = ('RI', 1, 0.0,)),
+                                       VNOR = ('RI', 5, 0.0,)),
                                      _F( GROUP_MA = 'SORTIE', 
                                        VNOR = ('RI', 0, 0.0,)),
                                        )
@@ -111,7 +111,7 @@ for F in frequencySweep:
     
     #ZZ[n]=AFFE_CHAR_ACOU( MODELE=GUIDE,
     #                     VITE_FACE=_F( GROUP_MA = 'SORTIE', 
-    #                                  VNOR = ('RI', 0, 0.,)))0.0855862
+    #                                  VNOR = ('RI', 0, 0.,)))
     
     print 'Impedance Table Lookup (F,ZR,ZI) = ', F, ZR, ZI
 
@@ -129,7 +129,7 @@ for F in frequencySweep:
                  VECT_ASSE=(_F( VECTEUR = CO("VECTASS"),OPTION='CHAR_ACOU', CHARGE=CHARACOU)),
                  MATR_ASSE=(_F( MATRICE = CO("MATASK"), OPTION = 'RIGI_ACOU'),
                             _F( MATRICE = CO("MATASM"), OPTION = 'MASS_ACOU'),) 
-                       )0.0855862
+                       )
 
 # #-----------------------CALCUL HARMONIQUE-------------------------------
 

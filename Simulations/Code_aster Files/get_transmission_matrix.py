@@ -13,15 +13,11 @@ NUM_CYCLES = 2
 def stripEnd(line):
 	line = line.strip("\n")
 	return line
-
-def getArr(parity): #lambda parity: ARR_ODD if parity % 2 == 0 else ARR_EVEN
-	return ARR_ODD if parity % 2 == 0 else ARR_EVEN
 	
-
 class transmissionMatrix(object):
 	#input velocity is the vector that represents the velocity 
 	def __init__(self, filename, inputVelocity):
-		self.imputVelocity = inputVelocity
+		self.inputVelocity = inputVelocity
 		self.dir = os.path.dirname(__file__)
 		self.args = self.loadFilenames(filename)
 		self.getAster()
@@ -34,6 +30,9 @@ class transmissionMatrix(object):
 			for i in range(len(lines)):
 				lines[i] = stripEnd(lines[i])
 		return lines
+
+	def getArr(self, parity): #lambda parity: ARR_ODD if parity % 2 == 0 else ARR_EVEN
+		return ARR_ODD if parity % 2 == 0 else ARR_EVEN
 
 	#returns the transmission matrix
 	def returnTransmissionMatrix(self):
@@ -51,7 +50,7 @@ class transmissionMatrix(object):
 			intxDict, presDict = ap.main(filePath) #gets the intensity and pressure Dict for the given file 
 
 			# print presDict
-			#resetting the current Matrix
+			#resetting the current Matrix to read in new files 
 			if i % NUM_CYCLES == 0:
 				print "in if:\n"
 				self.transmission[i] = currMatrix
@@ -60,10 +59,11 @@ class transmissionMatrix(object):
 			currMatrix = self.getTransmissionMatrix(presDict, i, currMatrix)
 
 		tempDict1 = currMatrix[0]
-		tempDict2 = currMatrix[2]
+		tempDict2 = currMatrix[3]
 		print "yes" if cmp(tempDict1, tempDict2) == 0 else "no"
-		self.transmission = currMatrix
+		self.transmission = currMatrix #stores the data structure properly in the class
 
+	#for a given presFile, this iteratively produces the proper transmission matrix
 	def getTransmissionMatrix(self, presDict, parity, currMatrix):
 		dictKeys = presDict.keys()
 		dictKeys.sort()
@@ -73,21 +73,23 @@ class transmissionMatrix(object):
 			currMatrix = self.createMatrix(currFreq, presDict[currFreq], parity, currMatrix)
 		# print currMatrix[3], "\n\n\n"
 
-		print "len of currMatrix is: ", len(currMatrix[3].keys())
+		print "len of currMatrix is: ", len(currMatrix[3].keys()) #checking to make sure everything turns out legit
 		return currMatrix
 
 	#gets the proper values from the pressure vector, based upon the current 'parity'
+	#the parity is determined by the counter, which allows us to do some silly dot product manipulations 
 	def getProperVector(self, presVect, counter):
 		nodeDict = {}
 		for node in presVect:
 			tempKeys = node.keys() #note there will be only one key
-			key = tempKeys [0]
-			nodeDict[key] = node[key][0 if counter == 0 else 1]
+			key = tempKeys[0]
+			nodeDict[key] = float(node[key][0 if counter == 0 else 1])
 		return nodeDict
 
-	#finds the dot product between an array and the pressure vector
+	#finds the "dot product" between an array and the pressure vector
+	#done in order to properly create the vector 
 	def dotProduct(self, currFreq, presVect, parity, transMatrix):
-		arr = getArr(parity)
+		arr = self.getArr(parity)
 		tempMatrix = copy.copy(transMatrix)
 		counter = 0
 		for i in range(len(arr)):
@@ -103,13 +105,18 @@ class transmissionMatrix(object):
 
 	def createMatrix(self, currFreq, presVect, parity, transMatrix):
 		return self.dotProduct(currFreq, presVect, parity, transMatrix)
-		# tempMatrix = self.dotProduct(currFreq, presVect, parity, transMatrix)
-		# return tempMatrix
 
-
+#Used to check the similarity to make sure any linear combination works 
+def checkSimilarity(tm1, tm2):
+	# print "tm1 is: ", tm1, "\n\n\n"
+	# print "tm2 is: ", tm2, "\n\n\n"
+	print "same" if cmp(tm1, tm2) == 0 else "different"
 
 def main():
-	tm = transmissionMatrix("filenames.txt", [1, 0])
+	tm = transmissionMatrix("filenames.txt", 1)
+	tm5 = transmissionMatrix("newVelocities.txt",5)
 	rtm = tm.returnTransmissionMatrix()
+	rtm5 = tm.returnTransmissionMatrix()
+	checkSimilarity(rtm, rtm5)
 	# print rtm
 main()
