@@ -4,6 +4,7 @@
 #define Constants
 CEIL_DIFF = [1, 10e-5, 10e-10, 10e-15, 10e-20]
 
+#assume passed in a positive value 
 def arrIndex(curVal):
 	return 0 if curVal > 100 else 1 if curVal > 10e-3 else 2 if curVal > 10e-8 else 3 if curVal > 10e-12 else 4
 
@@ -38,7 +39,6 @@ def checkValues(d1, d2):
 		compareVal = d2[keys[i]]
 		if checkFrequency(currVal, compareVal) != 0:
 			return -1
-
 	return 0
 
 #takes in two dictionaries and compares them

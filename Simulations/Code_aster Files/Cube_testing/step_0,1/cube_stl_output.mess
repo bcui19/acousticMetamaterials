@@ -1,0 +1,960 @@
+# ------------------------------------------------------------------------------------------
+# Impression du contenu du fichier de commandes à exécuter :
+# ------------------------------------------------------------------------------------------
+
+# TITRE GUIDE D'ONDE A SORTIE ANECHOIQUE (ONDES PLANES) E.F. CLASSIQUES
+#            CONFIGURATION MANAGEMENT OF EDF VERSION
+# ======================================================================
+# COPYRIGHT (C) 1991 - 2012  EDF R&D                  WWW.CODE-ASTER.ORG
+# THIS PROGRAM IS FREE SOFTWARE; YOU CAN REDISTRIBUTE IT AND/OR MODIFY
+# IT UNDER THE TERMS OF THE GNU GENERAL PUBLIC LICENSE AS PUBLISHED BY
+# THE FREE SOFTWARE FOUNDATION; EITHER VERSION 2 OF THE LICENSE, OR
+# (AT YOUR OPTION) ANY LATER VERSION.
+#
+# THIS PROGRAM IS DISTRIBUTED IN THE HOPE THAT IT WILL BE USEFUL, BUT
+# WITHOUT ANY WARRANTY; WITHOUT EVEN THE IMPLIED WARRANTY OF
+# MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE. SEE THE GNU
+# GENERAL PUBLIC LICENSE FOR MORE DETAILS.
+#
+# YOU SHOULD HAVE RECEIVED A COPY OF THE GNU GENERAL PUBLIC LICENSE
+# ALONG WITH THIS PROGRAM; IF NOT, WRITE TO EDF R&D CODE_ASTER,
+#    1 AVENUE DU GENERAL DE GAULLE, 92141 CLAMART CEDEX, FRANCE.
+# ======================================================================
+#  MODELISATION 'ACOUSTIQUE' AVEC ELEMENTS HEXA20 ET FACE8
+#  GUIDE D'ONDE ACOUSTIQUE EN E.F. CLASSIQUES
+#
+
+import numpy as np
+import math
+
+## input parameters 
+lowFreq = 20
+highFreq = 3000 
+dFreq = 12
+file_impedance = '/media/2TB/ZL_l0.100_r0.010.txt' 
+##
+
+DEBUT( );
+
+
+BUFFSIZE=10000
+u = -0.014
+
+Pr       = [None] * BUFFSIZE
+ZZ = [None] * BUFFSIZE
+
+frequencySweep = range(lowFreq, highFreq, dFreq)
+
+f, Zreal, Zimag = np.loadtxt(file_impedance, unpack=True)
+
+# import the mesh as MED format
+MAIL=LIRE_MAILLAGE(FORMAT='MED', )
+
+# define the air material
+AIR=DEFI_MATERIAU( FLUIDE=_F( RHO = 1.3, CELE_C = ('RI',343.,0.,)))
+
+# set the affecter of the material on the geometry
+# TOUT means everything? OUI is yes. 
+CHAMPMAT=AFFE_MATERIAU(  MAILLAGE=MAIL,
+                         AFFE=_F( TOUT = 'OUI',  MATER = AIR) )
+
+# define the FEM model to use. Here 
+GUIDE=AFFE_MODELE(  MAILLAGE=MAIL,     
+                    VERIF='MAILLE',
+                    AFFE=_F( TOUT = 'OUI', 
+                             MODELISATION = '3D',
+                             PHENOMENE = 'ACOUSTIQUE'), )
+
+
+# CAC=AFFE_CHAR_ACOU( MODELE=GUIDE, 
+#                     VITE_FACE=_F(GROUP_MA='ENTREE', 
+#                                  VNOR=('RI',-0.014,0.,),),
+#                     IMPE_FACE=_F(FROUP_MA='SORTIE', 
+#                                  PRES=('RI',0.,0.,),) );
+#                     # PRES_IMPO=_F(GROUP_MA='SORTIE',
+#                     #              PRES=('RI',0.0,0.0,),) );
+
+u = -0.014
+fake_zero = 0.0
+#1E-10
+                    
+# define the constant acoustic boundary condition
+# here VITE_FACE is vibration velocity field
+CHARACOU=AFFE_CHAR_ACOU( MODELE=GUIDE,
+                         VITE_FACE=( _F( GROUP_MA = 'ENTREE', 
+                                       VNOR = ('RI', 0, 0.0,)),
+                                     _F( GROUP_MA = 'SORTIE', 
+                                       VNOR = ('RI', 1, 0.0,)),
+                                       )
+                                       )
+
+## Set up matrices 
+n = 0
+for F in frequencySweep: 
+
+
+    # PRESACOU=AFFE_CHAR_ACOU( MODELE=GUIDE,
+    #                          PRES_IMPO=_F( GROUP_MA = 'SORTIE', 
+    #                                        PRES = ('RI', 0., 0.,)))
+    ## Perfect end condition
+    # ZZ[n]=AFFE_CHAR_ACOU( MODELE=GUIDE,
+    #                          IMPE_FACE=_F( GROUP_MA = 'SORTIE', 
+    #                                        IMPE = ('RI', 0.000001, 0.000001,)))
+
+    ZR = Zreal[n] if np.abs(Zreal[n]) > 1E-10 else 1E-10
+    ZI = Zimag[n] if np.abs(Zimag[n]) > 1E-10 else 1E-10
+
+    ZR = 0.0000001
+    ZI = 0.0000001
+    
+    
+    # ZZ[n]=AFFE_CHAR_ACOU( MODELE=GUIDE,
+    #                         IMPE_FACE=_F( GROUP_MA = 'SORTIE', 
+    #                         IMPE = ('RI', ZR, ZI,)))
+    
+    #ZZ[n]=AFFE_CHAR_ACOU( MODELE=GUIDE,
+    #                     VITE_FACE=_F( GROUP_MA = 'SORTIE', 
+    #                                  VNOR = ('RI', 0, 0.,)))
+    
+    print 'Impedance Table Lookup (F,ZR,ZI) = ', F, ZR, ZI
+
+    ## Anechoic end condition
+    # IMPEACOU=AFFE_CHAR_ACOU( MODELE=GUIDE,
+    #                          IMPE_FACE=_F( GROUP_MA = 'SORTIE', 
+    #                                        IMPE = ('RI', 445.9,0.,)))
+  
+    # compute all the matrices
+    ASSEMBLAGE(  MODELE=GUIDE,         
+                 # CHARGE=ZZ[n], # rigid conditions?
+                 CHAM_MATER=CHAMPMAT, # total elementary computation
+                 CHARGE=CHARACOU,
+                 NUME_DDL=CO("NU"),
+                 VECT_ASSE=(_F( VECTEUR = CO("VECTASS"),OPTION='CHAR_ACOU', CHARGE=CHARACOU)),
+                 MATR_ASSE=(_F( MATRICE = CO("MATASK"), OPTION = 'RIGI_ACOU'),
+                            _F( MATRICE = CO("MATASM"), OPTION = 'MASS_ACOU'),) 
+                       )
+
+# #-----------------------CALCUL HARMONIQUE-------------------------------
+
+    Pr[n]=DYNA_VIBRA( TYPE_CALCUL='HARM',
+                      BASE_CALCUL='PHYS',
+                      MATR_MASS=MATASM,  
+                      MATR_RIGI=MATASK,
+                      #MATR_AMOR=MATASI,
+                      FREQ=F,
+                      EXCIT=_F( VECT_ASSE = VECTASS,  
+                                COEF_MULT = 1.,
+                                PUIS_PULS = 1,  
+                                PHAS_DEG = 90.));
+    
+    ## NOTE:
+    ## www.code-aster.org/doc_doc/DOCASTER_en/An_introduction_to_Code_Aster.pdf
+    ## 
+    ## ELGA: the calculation is done at the Gauss points of the elements 
+    ## ELNO: the calculation is done at the nodes of each elements, considered
+    ##       separately from the neighboring elements 
+    ##       * more than one value are calculated for each node, one value from
+    ##         each element sharing that node.
+    ## NOEU: the calculation is done at each node
+    ##       * A mean value of the values coming from each element sharing the
+    ##         node
+    Pr[n]=CALC_CHAMP( reuse=Pr[n],
+                 TOUT_ORDRE='OUI',
+                 RESULTAT=Pr[n],
+                 ACOUSTIQUE=('INTE_NOEU', 'PRAC_NOEU')
+           )    
+
+
+    #### For visualization: won't work if in the loop...
+    ## IMPR_RESU(FORMAT='MED',
+    ##           RESU=_F(RESULTAT=Pr,
+    ##           PARTIE='REEL',),);
+    IMPR_RESU( RESU=_F(NUME_ORDRE=1,
+                       RESULTAT=Pr[n],
+                       # TOUT_CHAM='OUI',
+                       NOM_CHAM=('INTE_NOEU', 'PRAC_NOEU'),
+                       NOM_CMP=('PRES_R', 'PRES_I', 'INTX_R', 'INTX_I', 'INTY_R', 'INTY_I', 'INTZ_R', 'INTZ_I'),
+                       # TOUT='OUI' # NOEUD='NO763', #MAILLE='MA57',
+                       # NOEUD=('N170') # SORTIE face middle point
+                       # MAILLE=('M8814')
+                       # GROUP_MA=('ENTREE', 'SORTIE1', 'SORTIE2')
+                       GROUP_MA=('ENTREE', 'SORTIE')
+                       )
+                 )
+    n += 1
+
+    DETRUIRE (CONCEPT = _F (NOM = (NU, VECTASS, MATASM, MATASK),),);
+
+
+FIN()
+#
+
+# ------------------------------------------------------------------------------------------
+Impedance Table Lookup (F,ZR,ZI) =  20 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  32 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  44 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  56 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  68 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  80 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  92 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  104 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  116 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  128 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  140 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  152 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  164 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  176 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  188 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  200 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  212 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  224 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  236 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  248 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  260 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  272 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  284 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  296 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  308 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  320 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  332 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  344 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  356 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  368 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  380 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  392 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  404 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  416 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  428 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  440 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  452 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  464 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  476 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  488 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  500 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  512 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  524 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  536 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  548 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  560 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  572 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  584 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  596 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  608 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  620 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  632 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  644 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  656 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  668 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  680 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  692 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  704 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  716 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  728 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  740 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  752 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  764 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  776 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  788 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  800 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  812 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  824 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  836 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  848 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  860 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  872 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  884 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  896 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  908 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  920 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  932 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  944 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  956 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  968 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  980 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  992 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1004 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1016 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1028 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1040 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1052 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1064 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1076 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1088 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1100 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1112 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1124 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1136 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1148 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1160 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1172 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1184 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1196 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1208 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1220 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1232 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1244 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1256 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1268 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1280 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1292 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1304 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1316 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1328 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1340 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1352 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1364 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1376 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1388 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1400 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1412 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1424 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1436 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1448 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1460 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1472 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1484 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1496 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1508 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1520 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1532 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1544 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1556 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1568 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1580 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1592 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1604 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1616 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1628 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1640 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1652 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1664 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1676 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1688 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1700 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1712 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1724 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1736 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1748 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1760 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1772 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1784 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1796 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1808 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1820 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1832 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1844 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1856 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1868 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1880 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1892 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1904 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1916 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1928 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1940 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1952 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1964 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1976 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  1988 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2000 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2012 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2024 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2036 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2048 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2060 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2072 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2084 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2096 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2108 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2120 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2132 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2144 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2156 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2168 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2180 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2192 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2204 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2216 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2228 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2240 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2252 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2264 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2276 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2288 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2300 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2312 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2324 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2336 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2348 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2360 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2372 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2384 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2396 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2408 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2420 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2432 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2444 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2456 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2468 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2480 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2492 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2504 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2516 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2528 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2540 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2552 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2564 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2576 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2588 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2600 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2612 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2624 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2636 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2648 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2660 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2672 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2684 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2696 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2708 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2720 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2732 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2744 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2756 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2768 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2780 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2792 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2804 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2816 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2828 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2840 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2852 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2864 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2876 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2888 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2900 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2912 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2924 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2936 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2948 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2960 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2972 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2984 1e-07 1e-07
+Impedance Table Lookup (F,ZR,ZI) =  2996 1e-07 1e-07
+                                                                                
+                                                                                
+        -- CODE_ASTER -- VERSION : DÉVELOPPEMENT STABILISÉE (testing) --        
+                                                                                
+                          Version 11.3.0 du 12/12/2012                          
+                         Copyright EDF R&D 1991 - 2016                          
+                                                                                
+                    Exécution du : Mon Jun 27 15:24:58 2016                     
+                   Nom de la machine : liding-Precision-T3600                   
+                              Architecture : 64bit                              
+                          Type de processeur : x86_64                           
+                Système d'exploitation : Linux 3.13.0-85-generic                
+                        Langue des messages : en (UTF-8)                        
+                                                                                
+   
+   !------------------------------------------------------------------------------------!
+   ! <A> <SUPERVIS2_2>                                                                  !
+   !                                                                                    !
+   !     Vous utilisez une vieille version de Code_Aster.                               !
+   !                                                                                    !
+   !     En mettant à jour votre version, vous bénéficierez des dernières améliorations !
+   !     apportées au code depuis 15 mois.                                              !
+   !     Si vous avez des développements privés, vous risquez d'avoir un travail        !
+   !     important de portage si vous ne suivez pas les mises à jour.                   !
+   !                                                                                    !
+   !                                                                                    !
+   ! Ceci est une alarme. Si vous ne comprenez pas le sens de cette                     !
+   ! alarme, vous pouvez obtenir des résultats inattendus !                             !
+   !------------------------------------------------------------------------------------!
+   
+                           Parallélisme MPI : inactif                           
+                          Parallélisme OpenMP : actif                           
+                        Nombre de processus utilisés : 1                        
+                      Version de la librairie HDF5 : 1.8.8                      
+                      Version de la librairie MED : 3.0.6                       
+                          Librairie MUMPS : installée                           
+                    Version de la librairie SCOTCH : 5.1.10                     
+
+                 Mémoire limite pour l'exécution : 20000.00 Mo                  
+                   consommée par l'initialisation : 208.10 Mo                   
+                 par les objets du jeu de commandes : 11.87 Mo                  
+                reste pour l'allocation dynamique : 19780.04 Mo                 
+                Taille limite des fichiers d'échange : 97.66 Go                 
+                                                                                
+
+
+  # ------------------------------------------------------------------------------------------
+  # Commande No :  0001            Concept de type : -
+  # ------------------------------------------------------------------------------------------
+  DEBUT(INFO=1,
+        PAR_LOT='OUI',
+        IMPR_MACRO='NON',
+        MEMOIRE=_F(TAILLE_BLOC=800.0,
+                   TAILLE_GROUP_ELEM=1000,),
+        RESERVE_CPU=_F(BORNE=900,),
+        MESURE_TEMPS=_F(MOYENNE='OUI',
+                        NIVE_DETAIL=1,),
+        )
+
+
+  Valeur initiale du temps CPU maximum =   806400 secondes
+  Valeur du temps CPU maximum passé aux commandes =   805500 secondes
+  Réserve CPU prévue = 900 secondes
+
+  Début de lecture...
+
+
+     Réouverture de la base
+
+     Nom de la base                          :  ELEMBASE
+     Créée avec la version                   :  11.03.00
+     Nombre d'enregistrements utilisés       :  24
+     Nombre d'enregistrements maximum        :  512
+     Longueur d'enregistrement (octets)      :  819200
+     Nombre d'identificateurs utilisés       :  123
+     Taille maximum du répertoire            :  300
+     Pourcentage d'utilisation du répertoire :  41 %
+
+
+     Fermeture de la base
+
+     Nom de la base                          :  ELEMBASE
+     Nombre d'enregistrements utilisés       :  24
+     Nombre d'enregistrements maximum        :  512
+     Longueur d'enregistrement (octets)      :  819200
+     Nombre total d'accès en lecture         :  49
+     Volume des accès en lecture             :         38.28 Mo.
+     Nombre total d'accès en écriture        :  3
+     Volume des accès en écriture            :          2.34 Mo.
+     Nombre d'identificateurs utilisés       :  123
+     Taille maximum du répertoire            :  300
+     Pourcentage d'utilisation du répertoire :  41 %
+
+  Relecture des catalogues des éléments faite.
+
+  Fin de lecture (durée  0.000000  s.) 
+  # Mémoire (Mo) :   249.56 /   245.08 /    31.49 /    18.92 (VmPeak / VmSize / Optimum / Minimum)
+  # Fin commande No : 0001   user+syst:        0.04s (syst:        0.04s, elaps:        0.04s)
+  # ------------------------------------------------------------------------------------------
+
+  # ------------------------------------------------------------------------------------------
+  # Commande No :  0002            Concept de type : maillage_sdaster
+  # ------------------------------------------------------------------------------------------
+  MAIL = LIRE_MAILLAGE(FORMAT='MED',
+                       INFO_MED=1,
+                       INFO=1,
+                       UNITE=20,
+                       VERI_MAIL=_F(APLAT=1.E-3,
+                                    VERIF='OUI',),
+                       )
+
+  ====== VERIFICATION DU MAILLAGE ======
+ 
+
+------------ MAILLAGE MAIL     - IMPRESSIONS NIVEAU  1 ------------
+
+LU-27-JUIN-2016 15:24:58                                                        
+
+NOMBRE DE NOEUDS                          50
+
+NOMBRE DE MAILLES                         48
+                              SEG3                   24
+                              TRIA6                  24
+
+NOMBRE DE GROUPES DE MAILLES               2
+                              ENTREE               4
+                              SORTIE               4
+
+--------------------------------------------------------------------------------
+
+  # Mémoire (Mo) :   249.56 /   246.21 /    31.49 /    18.92 (VmPeak / VmSize / Optimum / Minimum)
+  # Fin commande No : 0002   user+syst:        0.01s (syst:        0.00s, elaps:        0.01s)
+  # ------------------------------------------------------------------------------------------
+
+  # ------------------------------------------------------------------------------------------
+  # Commande No :  0003            Concept de type : mater_sdaster
+  # ------------------------------------------------------------------------------------------
+  AIR = DEFI_MATERIAU(FLUIDE=_F(CELE_C=('RI', 343.0, 0.0),
+                                RHO=1.3,),
+                      INFO=1,)
+
+  La mémoire consommée actuellement hors JEVEUX est de 218.07 Mo.
+  La limite de l'allocation dynamique JEVEUX est fixée à 19781.93 Mo.
+
+ MATERIAU : AIR     
+ RELATION DE COMPORTEMENT: FLUIDE          
+
+
+  # Mémoire (Mo) :   249.56 /   246.38 /    31.49 /    18.92 (VmPeak / VmSize / Optimum / Minimum)
+  # Fin commande No : 0003   user+syst:        0.00s (syst:        0.00s, elaps:        0.01s)
+  # ------------------------------------------------------------------------------------------
+
+  # ------------------------------------------------------------------------------------------
+  # Commande No :  0004            Concept de type : cham_mater
+  # ------------------------------------------------------------------------------------------
+  CHAMPMAT = AFFE_MATERIAU(MAILLAGE=MAIL,
+                           AFFE=_F(MATER=(AIR, ),
+                                   TOUT='OUI',),
+                           INFO=1,
+                           )
+
+  # Mémoire (Mo) :   249.56 /   246.38 /    31.49 /    18.92 (VmPeak / VmSize / Optimum / Minimum)
+  # Fin commande No : 0004   user+syst:        0.00s (syst:        0.00s, elaps:        0.00s)
+  # ------------------------------------------------------------------------------------------
+
+  # ------------------------------------------------------------------------------------------
+  # Commande No :  0005            Concept de type : modele_sdaster
+  # ------------------------------------------------------------------------------------------
+  GUIDE = AFFE_MODELE(MAILLAGE=MAIL,
+                      VERIF=('MAILLE', ),
+                      AFFE=_F(PHENOMENE='ACOUSTIQUE',
+                              TOUT='OUI',
+                              MODELISATION=('3D', ),),
+                      INFO=1,
+                      VERI_JACOBIEN='OUI',
+                      PARTITION=_F(PARALLELISME='GROUP_ELEM',),
+                      )
+
+
+ SUR LES           48 MAILLES DU MAILLAGE MAIL    
+    ON A DEMANDE L'AFFECTATION DE           48
+    ON A PU EN AFFECTER                     24
+   
+   !-------------------------------------------------------------------------------------!
+   ! <A> <CALCULEL2_63>                                                                  !
+   !                                                                                     !
+   !   -> La maille M25 porte un élément fini de bord, mais elle ne borde                !
+   !      aucun élément ayant une "rigidité".                                            !
+   !                                                                                     !
+   !   -> Risque & Conseil :                                                             !
+   !      Cela peut entraîner des problèmes de "pivot nul" lors de la résolution.        !
+   !      Si la résolution des systèmes linéaires ne pose pas de problèmes, vous         !
+   !      pouvez ignorer ce message.                                                     !
+   !      Sinon, vérifier la définition du modèle (AFFE_MODELE) en évitant l'utilisation !
+   !      de l'opérande TOUT='OUI'.                                                      !
+   !                                                                                     !
+   !                                                                                     !
+   ! Ceci est une alarme. Si vous ne comprenez pas le sens de cette                      !
+   ! alarme, vous pouvez obtenir des résultats inattendus !                              !
+   !-------------------------------------------------------------------------------------!
+   
+   
+   !-------------------------------------------------------------------------------------!
+   ! <A> <CALCULEL2_63>                                                                  !
+   !                                                                                     !
+   !   -> La maille M26 porte un élément fini de bord, mais elle ne borde                !
+   !      aucun élément ayant une "rigidité".                                            !
+   !                                                                                     !
+   !   -> Risque & Conseil :                                                             !
+   !      Cela peut entraîner des problèmes de "pivot nul" lors de la résolution.        !
+   !      Si la résolution des systèmes linéaires ne pose pas de problèmes, vous         !
+   !      pouvez ignorer ce message.                                                     !
+   !      Sinon, vérifier la définition du modèle (AFFE_MODELE) en évitant l'utilisation !
+   !      de l'opérande TOUT='OUI'.                                                      !
+   !                                                                                     !
+   !                                                                                     !
+   ! Ceci est une alarme. Si vous ne comprenez pas le sens de cette                      !
+   ! alarme, vous pouvez obtenir des résultats inattendus !                              !
+   !-------------------------------------------------------------------------------------!
+   
+   
+   !-------------------------------------------------------------------------------------!
+   ! <A> <CALCULEL2_63>                                                                  !
+   !                                                                                     !
+   !   -> La maille M27 porte un élément fini de bord, mais elle ne borde                !
+   !      aucun élément ayant une "rigidité".                                            !
+   !                                                                                     !
+   !   -> Risque & Conseil :                                                             !
+   !      Cela peut entraîner des problèmes de "pivot nul" lors de la résolution.        !
+   !      Si la résolution des systèmes linéaires ne pose pas de problèmes, vous         !
+   !      pouvez ignorer ce message.                                                     !
+   !      Sinon, vérifier la définition du modèle (AFFE_MODELE) en évitant l'utilisation !
+   !      de l'opérande TOUT='OUI'.                                                      !
+   !                                                                                     !
+   !                                                                                     !
+   ! Ceci est une alarme. Si vous ne comprenez pas le sens de cette                      !
+   ! alarme, vous pouvez obtenir des résultats inattendus !                              !
+   !-------------------------------------------------------------------------------------!
+   
+   
+   !-------------------------------------------------------------------------------------!
+   ! <A> <CALCULEL2_63>                                                                  !
+   !                                                                                     !
+   !   -> La maille M28 porte un élément fini de bord, mais elle ne borde                !
+   !      aucun élément ayant une "rigidité".                                            !
+   !                                                                                     !
+   !   -> Risque & Conseil :                                                             !
+   !      Cela peut entraîner des problèmes de "pivot nul" lors de la résolution.        !
+   !      Si la résolution des systèmes linéaires ne pose pas de problèmes, vous         !
+   !      pouvez ignorer ce message.                                                     !
+   !      Sinon, vérifier la définition du modèle (AFFE_MODELE) en évitant l'utilisation !
+   !      de l'opérande TOUT='OUI'.                                                      !
+   !                                                                                     !
+   !                                                                                     !
+   ! Ceci est une alarme. Si vous ne comprenez pas le sens de cette                      !
+   ! alarme, vous pouvez obtenir des résultats inattendus !                              !
+   !-------------------------------------------------------------------------------------!
+   
+   
+   !-------------------------------------------------------------------------------------!
+   ! <A> <CALCULEL2_63>                                                                  !
+   !                                                                                     !
+   !   -> La maille M29 porte un élément fini de bord, mais elle ne borde                !
+   !      aucun élément ayant une "rigidité".                                            !
+   !                                                                                     !
+   !   -> Risque & Conseil :                                                             !
+   !      Cela peut entraîner des problèmes de "pivot nul" lors de la résolution.        !
+   !      Si la résolution des systèmes linéaires ne pose pas de problèmes, vous         !
+   !      pouvez ignorer ce message.                                                     !
+   !      Sinon, vérifier la définition du modèle (AFFE_MODELE) en évitant l'utilisation !
+   !      de l'opérande TOUT='OUI'.                                                      !
+   !                                                                                     !
+   !                                                                                     !
+   ! Ceci est une alarme. Si vous ne comprenez pas le sens de cette                      !
+   ! alarme, vous pouvez obtenir des résultats inattendus !                              !
+   !-------------------------------------------------------------------------------------!
+   
+   
+   !--------------------------------------------------------------------------------!
+   ! <A> <CATAMESS_41>                                                              !
+   !                                                                                !
+   ! Le message d'alarme 'CALCULEL2_63' a été émis 5 fois, il ne sera plus affiché. !
+   !                                                                                !
+   !                                                                                !
+   ! Ceci est une alarme. Si vous ne comprenez pas le sens de cette                 !
+   ! alarme, vous pouvez obtenir des résultats inattendus !                         !
+   !--------------------------------------------------------------------------------!
+   
+   
+   !--------------------------------------------------------------------------------------------------!
+   ! <A> <CALCULEL2_64>                                                                               !
+   !                                                                                                  !
+   !   -> Le modèle GUIDE n'a pas d'éléments sachant calculer la rigidité.                            !
+   !                                                                                                  !
+   !   -> Risque & Conseil :                                                                          !
+   !      Ce modèle ne pourra donc pas (en général) être utilisé pour faire des calculs.              !
+   !      Vérifier la définition du modèle (AFFE_MODELE) et assurez-vous que les                      !
+   !      types de mailles du maillage (SEG2, TRIA3, QUAD4, ...) sont compatibles avec votre          !
+   !      modélisation.                                                                               !
+   !      Exemples d'erreur :                                                                         !
+   !        * affecter une modélisation "3D" sur un maillage formé de facettes.                       !
+   !        * affecter une modélisation qui ne sait pas traiter tous les types de mailles du maillage !
+   !          (par exemple 'PLAN_DIAG' en thermique, 'AXIS_SI' en mécanique)                          !
+   !                                                                                                  !
+   !                                                                                                  !
+   ! Ceci est une alarme. Si vous ne comprenez pas le sens de cette                                   !
+   ! alarme, vous pouvez obtenir des résultats inattendus !                                           !
+   !--------------------------------------------------------------------------------------------------!
+   
+
+    MODELISATION      ELEMENT FINI      TYPE MAILLE          NOMBRE
+    3D                ACOU_FACE6        TRIA6                    24
+
+#2      Calculs elementaires et assemblages               CPU (USER+SYST/SYST/ELAPS):      0.00      0.00      0.00
+  # Mémoire (Mo) :   250.57 /   250.57 /    31.49 /    24.94 (VmPeak / VmSize / Optimum / Minimum)
+  # Fin commande No : 0005   user+syst:        0.01s (syst:        0.00s, elaps:        0.01s)
+  # ------------------------------------------------------------------------------------------
+
+  # ------------------------------------------------------------------------------------------
+  # Commande No :  0006            Concept de type : char_acou
+  # ------------------------------------------------------------------------------------------
+  CHARACOU = AFFE_CHAR_ACOU(MODELE=GUIDE,
+                            VITE_FACE=(_F(GROUP_MA=('ENTREE', ),
+                                          VNOR=('RI', 0, 0.0),),
+                                       _F(GROUP_MA=('SORTIE', ),
+                                          VNOR=('RI', 1, 0.0),),
+                                       ),
+                            VERI_DDL='OUI',)
+
+  # Mémoire (Mo) :   250.57 /   250.57 /    31.49 /    24.94 (VmPeak / VmSize / Optimum / Minimum)
+  # Fin commande No : 0006   user+syst:        0.00s (syst:        0.00s, elaps:        0.00s)
+  # ------------------------------------------------------------------------------------------
+
+  # ------------------------------------------------------------------------------------------
+  # Commande No :  0007            Concept de type : -
+  # ------------------------------------------------------------------------------------------
+  ASSEMBLAGE(CHARGE=(CHARACOU, ),
+             NUME_DDL=CO(NU),
+             MODELE=GUIDE,
+             CHAM_MATER=CHAMPMAT,
+             VECT_ASSE=_F(VECTEUR=CO(VECTASS),
+                          OPTION='CHAR_ACOU',
+                          CHARGE=(CHARACOU, ),),
+             MATR_ASSE=(_F(MATRICE=CO(MATASK),
+                           OPTION='RIGI_ACOU',),
+                        _F(MATRICE=CO(MATASM),
+                           OPTION='MASS_ACOU',),
+                        ),
+             INFO=1,
+             INST=0.0,
+             SOLVEUR=_F(RENUM='METIS',
+                        METHODE='MULT_FRONT',),
+             )
+
+   
+   !------------------------------------------------------------!
+   ! <EXCEPTION> <CALCULEL_34>                                  !
+   !                                                            !
+   !  le calcul de l'option :  RIGI_ACOU                        !
+   !  n'est possible pour aucun des types d'éléments du LIGREL. !
+   !------------------------------------------------------------!
+   
+
+  Destruction du concept '_9001251'.
+
+  # ------------------------------------------------------------------------------------------
+  # Commande No :  0009            Concept de type : -
+  # ------------------------------------------------------------------------------------------
+  FIN(RETASSAGE='NON',
+      INFO_RESU='OUI',
+      FORMAT_HDF='NON',
+      UNITE=6,)
+
+   
+   !-------------------------------------------------------------------------!
+   ! <I> <CATAMESS_89>                                                       !
+   !                                                                         !
+   !     Liste des alarmes émises lors de l'exécution du calcul.             !
+   !                                                                         !
+   !     Les alarmes que vous avez choisies d'ignorer sont précédées de (*). !
+   !     Nombre d'occurrences pour chacune des alarmes :                     !
+   !            CALCULEL2_63         émise   24 fois                         !
+   !            CALCULEL2_64         émise    1 fois                         !
+   !            SUPERVIS2_2          émise    1 fois                         !
+   !-------------------------------------------------------------------------!
+   
+ ---------------------------------------------------------------------------
+ Concepts de la base: G
+    Nom       Type                 Taille (Mo)         Nombre      Nombre de
+                                                     d'objets       segments
+    TOTAL                                15.46            103            194
+  
+    &FOZERO                               0.00              2              2
+    &&_NUM_C                              0.00              1              1
+    &CATA.AC                              0.00              2              4
+    &CATA.CL                              0.23              1              3
+    &CATA.GD                              0.04              4             11
+    &CATA.ME                              0.13              2              4
+    &CATA.OP                              0.27              4             19
+    &CATA.PH                              0.00              1              1
+    &CATA.PR                              0.00              2              4
+    &CATA.TE                             14.74             17             42
+    &CATA.TH                              0.01              2              4
+    &CATA.TM                              0.02              7             11
+    MAIL                                  0.01             34             49
+    AIR                                   0.00              4              4
+    CHAMPMAT                              0.00              5             10
+    GUIDE                                 0.00              8             13
+    CHARACOU                              0.00              7             12
+ ---------------------------------------------------------------------------
+
+
+     Fermeture de la base
+
+     Nom de la base                          :  GLOBALE
+     Nombre d'enregistrements utilisés       :  30
+     Nombre d'enregistrements maximum        :  128000
+     Longueur d'enregistrement (octets)      :  819200
+     Nombre total d'accès en lecture         :  6
+     Volume des accès en lecture             :          4.69 Mo.
+     Nombre total d'accès en écriture        :  46
+     Volume des accès en écriture            :         35.94 Mo.
+     Nombre d'identificateurs utilisés       :  212
+     Taille maximum du répertoire            :  2000
+     Pourcentage d'utilisation du répertoire :  10 %
+
+
+     Fermeture de la base
+
+     Nom de la base                          :  VOLATILE
+     Nombre d'enregistrements utilisés       :  7
+     Nombre d'enregistrements maximum        :  128000
+     Longueur d'enregistrement (octets)      :  819200
+     Nombre total d'accès en lecture         :  0
+     Volume des accès en lecture             :          0.00 Mo.
+     Nombre total d'accès en écriture        :  10
+     Volume des accès en écriture            :          7.81 Mo.
+     Nombre d'identificateurs utilisés       :  166
+     Taille maximum du répertoire            :  2000
+     Pourcentage d'utilisation du répertoire :  8 %
+
+ <FIN> Arrêt normal dans "FIN".
+
+ La mémoire demandée au lancement est surestimée, elle est de 20000.00 Mo.
+ Le pic mémoire utilisée est de 250.57 Mo.
+
+  
+ <I>       FERMETURE DES BASES EFFECTUEE
+  
+   STATISTIQUES CONCERNANT L'ALLOCATION DYNAMIQUE :
+     TAILLE CUMULEE MAXIMUM            :                    31  Mo.
+     TAILLE CUMULEE LIBEREE            :                     4  Mo.
+     NOMBRE TOTAL D'ALLOCATIONS        :                  1141
+     NOMBRE TOTAL DE LIBERATIONS       :                  1141
+     APPELS AU MECANISME DE LIBERATION :                     0
+     TAILLE MEMOIRE CUMULEE RECUPEREE  :                     0  Mo.
+     VOLUME DES LECTURES               :                     0  Mo.
+     VOLUME DES ECRITURES              :                     0  Mo.
+  
+   MEMOIRE JEVEUX MINIMALE REQUISE POUR L'EXECUTION :      24.94 Mo
+     - IMPOSE DE NOMBREUX ACCES DISQUE
+     - RALENTIT LA VITESSE D'EXECUTION
+   MEMOIRE JEVEUX OPTIMALE REQUISE POUR L'EXECUTION :      31.49 Mo
+     - LIMITE LES ACCES DISQUE
+     - AMELIORE LA VITESSE D'EXECUTION
+   MAXIMUM DE MEMOIRE UTILISEE PAR LE PROCESSUS     :     250.57 Mo
+     - COMPREND LA MEMOIRE CONSOMMEE PAR  JEVEUX, 
+       LE SUPERVISEUR PYTHON, LES LIBRAIRIES EXTERNES
+  
+ <I>       FIN D'EXECUTION LE : LU-27-JUIN-2016 15:24:58
+
+
+  <I> Informations sur les temps d'exécution
+      Temps cpu total                         2.64 s
+      Temps cpu user total                    2.53 s
+      Temps cpu systeme total                 0.11 s
+      Temps cpu restant                  805497.36 s
+
+
+  La signature de la base sauvegardée est (à l'adresse 0) :
+    72075901d3b22acb3b0cd405f1cfc8b92fd61acb
+
+ ********************************************************************************
+ * COMMAND                  :       USER :     SYSTEM :   USER+SYS :    ELAPSED *
+ ********************************************************************************
+ * init (jdc)               :       2.48 :       0.04 :       2.52 :       2.52 *
+ *  . compile               :       0.00 :       0.00 :       0.00 :       0.01 *
+ *  . exec_compile          :       1.30 :       0.01 :       1.31 :       1.30 *
+ *  . report                :       0.82 :       0.00 :       0.82 :       0.82 *
+ *  . build                 :       0.00 :       0.00 :       0.00 :       0.00 *
+ * DEBUT                    :       0.00 :       0.04 :       0.04 :       0.04 *
+ * LIRE_MAILLAGE            :       0.01 :       0.00 :       0.01 :       0.01 *
+ * DEFI_MATERIAU            :       0.00 :       0.00 :       0.00 :       0.01 *
+ * AFFE_MATERIAU            :       0.00 :       0.00 :       0.00 :       0.00 *
+ * AFFE_MODELE              :       0.01 :       0.00 :       0.01 :       0.01 *
+ * AFFE_CHAR_ACOU           :       0.00 :       0.00 :       0.00 :       0.00 *
+ * ASSEMBLAGE               :       0.01 :       0.02 :       0.03 :       0.03 *
+ * FIN                      :       0.01 :       0.02 :       0.03 :       0.02 *
+ *  . part Superviseur      :       2.50 :       0.08 :       2.58 :       2.58 *
+ *  . part Fortran          :       0.03 :       0.02 :       0.05 :       0.05 *
+ ********************************************************************************
+ * TOTAL_JOB                :       2.53 :       0.11 :       2.64 :       2.64 *
+ ********************************************************************************
+
+JDC.py : ERREUR A L'EXECUTION - INTERRUPTION
+>> JDC.py : DEBUT RAPPORT
+CR d'execution de JDC en MIXTE
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   ! <S> Exception utilisateur levee mais pas interceptee.      !
+   ! Les bases sont fermees.                                    !
+   ! Type de l'exception : error                                !
+   !                                                            !
+   !  le calcul de l'option :  RIGI_ACOU                        !
+   !  n'est possible pour aucun des types d'éléments du LIGREL. !
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+fin CR d'execution de JDC en MIXTE
+
+>> JDC.py : FIN RAPPORT
+EXECUTION_CODE_ASTER_EXIT_27037=1

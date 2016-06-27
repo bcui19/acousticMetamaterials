@@ -1,7 +1,6 @@
 import os 
 import aster_processing as ap
 import check_transmission_matrix as checkMatrix
-import numpy as np
 import copy
 
 
@@ -26,6 +25,7 @@ class transmissionMatrix(object):
 	#from the filename path, load all of the filenames that will need to be read into a list
 	def loadFilenames(self, filename):
 		filePath = os.path.join(self.dir, filename)
+		# print "filePath is: ", filePath
 		with open(filePath) as f:
 			lines = f.readlines()
 			for i in range(len(lines)):
@@ -33,7 +33,7 @@ class transmissionMatrix(object):
 		return lines
 
 	def getArr(self, parity): #lambda parity: ARR_ODD if parity % 2 == 0 else ARR_EVEN
-		return ARR_ODD if parity % 2 == 0 else ARR_EVEN
+		return ARR_ODD if parity % NUM_CYCLES == 0 else ARR_EVEN
 
 	#returns the transmission matrix
 	def returnTransmissionMatrix(self):
@@ -46,7 +46,7 @@ class transmissionMatrix(object):
 		self.transmission = {}
 		for i in range(len(self.args)):
 			filePath = os.path.join(self.dir, self.args[i])
-			print filePath
+			# print "current Filepath is: ", filePath
 			intxDict, presDict = ap.main(filePath) #gets the intensity and pressure Dict for the given file 
 
 			#resetting the current Matrix to read in new files 
@@ -59,7 +59,7 @@ class transmissionMatrix(object):
 
 		tempDict1 = currMatrix[0]
 		tempDict2 = currMatrix[3]
-		print "values are different" if cmp(tempDict1, tempDict2) == 0 else "values are the same"
+		print "values are same" if cmp(tempDict1, tempDict2) == 0 else "values are different"
 		self.transmission = currMatrix #stores the data structure properly in the class
 
 	#for a given presFile, this iteratively produces the proper transmission matrix
