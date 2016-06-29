@@ -4,18 +4,18 @@ import os
 import csv
 import cmath
 
-#define constants
+#define global constants
 NUM_FILES = 16
-PATH = "Paper Copy Actual Size"
+PATH = 0 #initializing path 
+DIR = os.path.dirname(__file__)
 
 
 def coalesce(filenames, path):
 	returnList = []
-	dir = os.path.dirname(__file__)
 	for i in range(len(filenames)):
 		freqList = []
 		tempList = []
-		tempPath = os.path.join(dir, path, filenames[i])
+		tempPath = os.path.join(DIR, path, filenames[i])
 		csvfile = open(tempPath, "r")
 		reader = csv.DictReader(csvfile)
 		for row in reader:
@@ -31,41 +31,69 @@ def generateFieldnames(fieldname):
 		tempArr.append(fieldname + str(i) + " imag")
 	return tempArr
 
+#helper function for sanity check
+def genFieldnames(fieldname):
+	tempArr = ["Frequency"]
+	for i in range(NUM_FILES):
+		tempArr.append(fieldname + str(i))
+	return tempArr
+
+#manually checks the values in teh maps to make sure indexing is appropriate
+def checkMapping(complexMap, dividedMap):
+	divKeys = dividedMap.keys()
+	for i in range(len(divKeys)):
+		if divKeys[i] == "Frequency":
+			continue
+		tempKey = divKeys[i] + " real"
+		if complexMap[tempKey] != dividedMap[divKeys[i]].real:
+			print "failed at key: ", divKeys[i], " returning"
+			return
+		tempKey = divKeys[i] + " imag"
+		if complexMap[tempKey] != dividedMap[divKeys[i]].imag:
+			print "failed at key: ", divKeys[i], " returning"
+			return
+
+def createMapping(fieldnames, dataset, freqList, index):
+	returnMap = {"Frequency": freqList[index]}
+	checkMap = {"Frequency": freqList[index]}
+	tempFieldname = genFieldnames("output")
+	for j in range(len(dataset)):
+		returnMap[fieldnames[j*2+1]] = dataset[j][index].real
+		returnMap[fieldnames[j*2+2]] = dataset[j][index].imag
+		checkMap[tempFieldname[j+1]] = dataset[j][index]
+	checkMapping(returnMap, checkMap) #acts as a sanity check 
+	return returnMap
+
 def rewriteData(coalescedData, freqList, path, outputName):
-	outputfile = os.path.join(os.path.dirname(__file__), path, outputName + ".csv")
+	outputfile = os.path.join(DIR, path, outputName + ".csv")
 	csvfile = open(outputfile, "w")
 	fieldnames = generateFieldnames("output")
 	print fieldnames
 	print "len of data is: ", len(coalescedData)
 	writer = csv.DictWriter(csvfile, fieldnames = fieldnames)
 	writer.writeheader()
-	# print coalescedData[0]
 	for i in range(len(coalescedData[0])):
-		print 5
-		
-	# for i in range(len(coalescedData)):
-
-
+		curMap = createMapping(fieldnames, coalescedData, freqList, i)
+		writer.writerow(curMap)
 
 def generateFileNames(filename):
 	return [filename + str(i) + ".csv" for i in range(NUM_FILES)]
 
+def removeFiles(filenames):
+	for file in filenames:
+		os.remove(os.path.join(DIR, PATH, file))
 
-def main():
-	filenames = generateFileNames("acoustic collimator actual size results")
-	coalescedData, freqList = coalesce(filenames, "Paper Copy Actual Size")
-	rewriteData(coalescedData, freqList, PATH, "output")
+#name is the filename that is generated from the transmission matrix
+#outputname is the name of the outputted file 
+def runCoalesce(name, outputname, path):
+	global PATH
+	PATH = path
+	filenames = generateFileNames(name)
+	coalescedData, freqList = coalesce(filenames, PATH)
+	rewriteData(coalescedData, freqList, PATH, outputname)
+	removeFiles(filenames)
 
-main()
+curname = "acoustic collimator actual size results"
+outputname = "coalesced"
 
-	# def writeSingleOutput(self, outputfile, index):
-	# 	outputPath = os.path.join(self.dir, self.pathToFolder + outputfile + str(index) + ".csv")
-	# 	print outputPath
-	# 	csvfile = open(outputPath, "w")
-	# 	fieldnames = ["Frequency", "Real", "Imaginary"]
-	# 	writer = csv.DictWriter(csvfile, fieldnames = fieldnames)
-	# 	writer.writeheader()
-	# 	for freq in self.transmission[index]:
-	# 		tempKey = self.transmission[index][freq].keys()[0] #only one key 
-	# 		real, imag = self.getArgs(self.transmission[index][freq][tempKey])
-	# 		writer.writerow({'Frequency': freq, 'Real': real, 'Imaginary': imag})
+# main(curname, outputname, "Paper Copy Actual Size")
