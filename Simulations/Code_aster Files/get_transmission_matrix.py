@@ -68,11 +68,12 @@ class transmissionMatrix(object):
 	def getArgs(self, complexVal):
 		return complexVal.real, complexVal.imag
 
+	#wrapper function that is used to write files 
 	def writeOutput(self, outputfile):
 		for i in range(NUM_CYCLES**2):
 			self.writeSingleOutput(outputfile, i)
 
-
+	#helper function that writes a singular output
 	def writeSingleOutput(self, outputfile, index):
 		outputPath = os.path.join(self.dir, self.pathToFolder + outputfile + str(index) + ".csv")
 		print outputPath
