@@ -61,6 +61,7 @@ class identityTranmsission(object):
 
 	def generateDict(self, freq):
 		tempDict = {"Frequency": freq}
+		# print "len of result Matrix is: ", len(self.resultMatrix[freq])
 		for i in range(len(self.fieldnames)/2):
 			tempDict[self.fieldnames[2*i + 1]] = self.resultMatrix[freq][i].real
 			tempDict[self.fieldnames[2*i + 2]] = self.resultMatrix[freq][i].imag
@@ -116,10 +117,10 @@ def main():
 	itm = identityTranmsission(rtm, listenNodes, fileDirectory + "/", "identity output")
 	# itm.test()
 	# print len(rtm[0].keys())
-	print "rtm index is: ", rtm[4][512.0]
-	print "rtm index is: ", rtm[12][512.0]
-	print "rtm index is: ", rtm[6][512.0]
-	print "rtm index is: ", rtm[14][512.0]
+	# print "rtm index is: ", rtm[4][512.0]
+	# print "rtm index is: ", rtm[12][512.0]
+	# print "rtm index is: ", rtm[6][512.0]
+	# print "rtm index is: ", rtm[14][512.0] 
 
 
 
