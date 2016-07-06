@@ -5,7 +5,7 @@ import numpy as np
 #define constants
 NUM_CYCLES = 4
 VELOCITY_SOLUTION_MATRIX = [0] * NUM_CYCLES
-fileDirectory = "Paper/rightFreq independent"
+fileDirectory = "Paper/rightFreq fullRank"
 
 
 class independentMatrix(gim.identityTransformation):
@@ -19,30 +19,45 @@ class independentMatrix(gim.identityTransformation):
 			press4 = self.tm[NUM_CYCLES*3 + i][freq]
 			tempArr[2] = press4[press4.keys()[0]]
 			
-			tempArr[1] = complex(1, 0) if i == 1 else complex(0, 0)
+			if i == 1:
+				tempArr[1] = complex(17,0)
 			if i == 2:
-				tempArr[1] = complex(1,0)
-				tempArr[3] = complex(1,0) 
+				tempArr[3] = complex(1,0)
+			if i == 3:
+				tempArr[3] = complex(13,1)
+
+			# tempArr[1] = complex(1, 0) if i == 1 else complex(0, 0)
+			# if i == 1:
+			# 	tempArr[1] = complex(1,0)
+			# 	tempArr[3] = complex(1,0)
+			# if i == 2:
+			# 	tempArr[1] = complex(1,0)
+			# 	tempArr[3] = complex(1,0)
+			# if i == 3:
+			# 	tempArr[3] = complex(1,0) 
 
 			arrStor.append(tempArr)
 		# print "arrStor is: ", arrStor
 		return arrStor
+	
+
 
 	def getVelocityMatrix(self, index, freq):
 		origMatrix = self.getOrigMatrix(freq)
 		solutionMatrix = VELOCITY_SOLUTION_MATRIX[:]
-		solutionMatrix[index] = complex(1,0)
+		if index == 0:
+			solutionMatrix[0] = complex(1,1)
 		if index == 2:
-			solutionMatrix[1] = complex(1,0)
-			solutionMatrix[3] = complex(1,0)
-		# print "solution Matrix is: ", solutionMatrix
+			solutionMatrix[2] = complex(1,0)
+		print "solution Matrix is: ", solutionMatrix
+		print "orig Matrix is: ", origMatrix
 		return np.linalg.solve(origMatrix, solutionMatrix)
 
 def initialize():
 	tempOutput = "temp"
 	tm = gtm.transmissionMatrix(fileDirectory + "/paperCheck.txt", fileDirectory, "collimator listennode.txt", tempOutput, 1)
 	rtm = tm.returnTransmissionMatrix()
-	frequencies = rtm[0].keys()
+	frequencies = rtm[0].keys()#[0:1]
 	# coalesce.runCoalesce(tempOutput, "coalesced", fileDirectory)
 	# temp_frequencies = x[0].keys()
 	# frequencies = temp_frequencies[:]
