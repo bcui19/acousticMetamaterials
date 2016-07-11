@@ -93,7 +93,7 @@ def runCoalesce(name, outputname, path):
 	rewriteData(coalescedData, freqList, PATH, outputname)
 	removeFiles(filenames)
 
-curname = "acoustic collimator actual size results"
-outputname = "coalesced"
+# curname = "acoustic collimator actual size results"
+# outputname = "coalesced"
 
 # main(curname, outputname, "Paper Copy Actual Size")

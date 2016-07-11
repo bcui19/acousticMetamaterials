@@ -4,10 +4,13 @@ import os
 import csv
 
 #define constants
-NUM_CYCLES = 4
+NUM_CYCLES = 2
 DIFF_VAL_REAL = 3e-16
 DIFF_VAL_IMAG = 1e-5
 
+
+#class to get the transmission nodes for all nodes 
+#recorded within the simulation 
 class transmissionNodes(gtm.transmissionMatrix):
 	def getListennodes(self):
 		return self.listenNodes
@@ -46,6 +49,7 @@ class validateNodes(object):
 	def __init__(self, transmissionMatrix, listenNodes):
 		self.tm = transmissionMatrix
 		self.listenNodes = listenNodes
+		print "listennodes is: "
 		self.validate()
 
 	def validateNode_real(self, currNode, compareNode):
@@ -113,9 +117,9 @@ class exportNodes(object):
 
 
 def main():
-	fileDirectory = "Paper/rightFreq"
+	fileDirectory = "code aster check/cylinder"
 	tempOutput = "temp"
-	tm = transmissionNodes(fileDirectory + "/paperCheck.txt", fileDirectory, "face nodes.txt", tempOutput, 1)
+	tm = transmissionNodes(fileDirectory + "/cylinder check.txt", fileDirectory, "list of cylinder nodes.txt", tempOutput, 1)
 	rtm = tm.returnTransmissionMatrix()
 	frequencies = rtm[0].keys()#[0:1]
 
@@ -128,4 +132,4 @@ def main():
 
 	print 5
 
-main()
+# main()

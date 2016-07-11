@@ -25,7 +25,7 @@ def checkFrequency(n1, n2):
 		curVal = n1[keys[i]]
 		compareVal = n2[keys[i]]
 		if abs(curVal - compareVal) > CEIL_DIFF[arrIndex(abs(curVal))]:
-			print "curVal is: ", curVal
+			print "curVal is: ", curVal, "compare Val is: ", compareVal
 			print "abs dif: ", abs(curVal - compareVal)
 			return -1
 	return 0
@@ -38,6 +38,7 @@ def checkValues(d1, d2):
 		currVal = d1[keys[i]]
 		compareVal = d2[keys[i]]
 		if checkFrequency(currVal, compareVal) != 0:
+			print "At frequency: ", keys[i]
 			return -1
 	return 0
 

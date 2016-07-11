@@ -9,21 +9,26 @@ import get_transmission_matrix as gtm
 
 #Define constants
 NUM_CYCLES = 4
-VELOCITY_SOLUTION_MATRIX = [0, 0, 0, 0]
-print "type of velocity is: ", type(VELOCITY_SOLUTION_MATRIX)
+# VELOCITY_SOLUTION_MATRIX = [0] * NUM_CYCLES
 
+def updateClass(numCycles):
+	global NUM_CYCLES
+	NUM_CYCLES = numCycles
 
 class identityTransformation(object):
-	def __init__(self, transmissionMatrix, frequencies):
+	def __init__(self, transmissionMatrix, frequencies, velocityMatrix):
 		self.tm = transmissionMatrix
+		self.velocityMatrix = velocityMatrix
+		# print "transmission matrix is: ", len(self.tm)
 		self.freq = frequencies
 		self.getTransmission()
+		self.simplifyIdentity()
 		# self.getPressureMatrix(0, 512.0)
 
 	def getOrigMatrix(self, freq):
 		arrStor = []
 		for i in range(NUM_CYCLES):
-			tempArr = [0]*4
+			tempArr = [0]*NUM_CYCLES
 			press2 = self.tm[NUM_CYCLES + i][freq]
 			tempArr[0] = press2[press2.keys()[0]] #there will only be one key
 			press4 = self.tm[NUM_CYCLES*3 + i][freq]
@@ -33,49 +38,62 @@ class identityTransformation(object):
 			tempArr[3] = complex(1, 0) if i == 3 else complex(0, 0) 
 
 			arrStor.append(tempArr)
-
-		newArr = np.eye(NUM_CYCLES, dtype = complex)
-
-		for i in range(NUM_CYCLES):
-			for j in range(NUM_CYCLES):
-				newArr[i][j] = arrStor[i][j]
-
-		return newArr
+		# print "arrStor is: ", arrStor
+		return arrStor
 
 	def getSolMatrix(self, index, freq):
 		solArr = []
 		for i in range(NUM_CYCLES):
 			tempDict = self.tm[NUM_CYCLES * index + i][freq]
+			# print "indexing is: ", NUM_CYCLES * index + i
 			solArr.append(tempDict[tempDict.keys()[0]])
 		return solArr
 
 	def getPressureMatrix(self, index, freq):
 		origMatrix = self.getOrigMatrix(freq)
-		solutionMatrix = self.getSolMatrix(index, freq)
-		return np.linalg.solve(origMatrix, solutionMatrix)
+		pressureVect = self.getSolMatrix(index, freq)
+		# print "Pressure Vect is: ", pressureVect
+		# print "Orig Matrix is: ", origMatrix
+		return np.linalg.solve(origMatrix, pressureVect)
 
 	def getVelocityMatrix(self, index, freq):
 		origMatrix = self.getOrigMatrix(freq)
-		solutionMatrix = VELOCITY_SOLUTION_MATRIX[:]
-		solutionMatrix[index+1] = 1
+		solutionMatrix = self.velocityMatrix[:]
+		solutionMatrix[index] = complex(1,0)
+		# print "solution Matrix is: ", solutionMatrix
 		return np.linalg.solve(origMatrix, solutionMatrix)
 
 	def getTransmission(self):
 		self.identityDict = {}
 		for currFreq in self.freq:
+			# if currFreq == 2528.0:
+				# continue
 			solArr = []
 			for j in [0,2]:
 				presSol = self.getPressureMatrix(j, currFreq)
 				velSol = self.getVelocityMatrix(j, currFreq)
+				# print "pressure Solution is: ", presSol
+				# print "Velocity Solution is: ", velSol
 				solArr.append(presSol)
 				solArr.append(velSol)
 
 			self.identityDict[currFreq] = solArr
-	
+
+	def reduceArr(self, currArr):
+		for i in range(len(currArr)):
+			for j in range(len(currArr)):
+				if i == j:
+					currArr[i][j] -= 1
+		return currArr
+
+	def simplifyIdentity(self):
+		for freq in self.identityDict:
+			currArr = self.identityDict[freq]
+			# currArr = self.reduceArr(currArr)
+			self.identityDict[freq] = currArr
+
 	def returnTransmission(self):
 		return self.identityDict
-
-
 
 
 class exportIdentity(object):
@@ -116,11 +134,6 @@ class exportIdentity(object):
 		csvfile = open(outputPath, "w")
 		writer = csv.DictWriter(csvfile, fieldnames = self.fieldnames)
 		writer.writeheader()
-		# for i in range(1):
-			# self.generateDict(self.frequencies[0])
-			# for key in self.outputDict.keys():
-			# 	print "key is: ", key
-			# 	print self.outputDict[key]
 		for freq in self.frequencies:
 			self.generateDict(freq)
 			writer.writerow(self.outputDict)
@@ -131,16 +144,17 @@ def main():
 	tempOutput = "temp"
 	tm = gtm.transmissionMatrix(fileDirectory + "/paperCheck.txt", fileDirectory, "collimator listennode.txt", tempOutput, 1)
 	rtm = tm.returnTransmissionMatrix()
-	frequencies = rtm[0].keys()
-	# print rtm
-	coalesce.runCoalesce(tempOutput, "coalesced", fileDirectory)
-	# rtm = 5
+	frequencies = rtm[0].keys()[0:1]
+	# coalesce.runCoalesce(tempOutput, "coalesced", fileDirectory)
+
 	# temp_frequencies = x[0].keys()
-	# frequencies = temp_frequencies[0:3]
+	# frequencies = temp_frequencies[:]
+	velocityVector = [0] * NUM_CYCLES
 
-	identity = identityTransformation(rtm, frequencies)
+	identity = identityTransformation(rtm, frequencies, velocityVector)
 	identityDict = identity.returnTransmission()
-	exportIdentity(identityDict, fileDirectory, "Computed vals")
+	# print identityDict[25000.0][2]
+	exportIdentity(identityDict, fileDirectory, "Computed identity vals")
 
 
-main()
+# main()
