@@ -9,6 +9,9 @@ NUM_FILES = 16
 PATH = 0 #initializing path 
 DIR = os.path.dirname(__file__)
 
+def updateCoalesce(numCycles):
+	global NUM_FILES
+	NUM_FILES = numCycles ** 2
 
 def coalesce(filenames, path):
 	returnList = []

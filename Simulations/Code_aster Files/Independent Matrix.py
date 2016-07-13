@@ -39,10 +39,10 @@ class independentMatrix(gim.identityTransformation):
 			tempArr = [0]*NUM_CYCLES
 			press2 = self.tm[NUM_CYCLES + i][freq]
 			tempArr[0] = press2[press2.keys()[0]] #there will only be one key
-			# press4 = self.tm[NUM_CYCLES*3 + i][freq]
-			# tempArr[2] = press4[press4.keys()[0]]
+			press4 = self.tm[NUM_CYCLES*3 + i][freq]
+			tempArr[2] = press4[press4.keys()[0]]
 
-			for j in [1]:#, 3]:
+			for j in [1, 3]:
 				tempArr[j] = VELOCITY_MATRIX[i][j]
 
 			arrStor.append(tempArr)
@@ -69,7 +69,7 @@ class independentMatrix(gim.identityTransformation):
 			# if currFreq == 2528.0:
 				# continue
 			solArr = []
-			for j in [0]:#,2]:
+			for j in [0, 2]:
 				presSol = self.getPressureMatrix(j, currFreq)
 				velSol = self.getVelocityMatrix(j, currFreq)
 				# print "pressure Solution is: ", presSol
