@@ -7,36 +7,21 @@ import get_identity_matrix as getIndependent_Base #needed for an export class lo
 
 
 #defines the number of simulations run for confirmation
+#This number should match the number of ports to get a stable solution
+#to the linear algebra system 
 NUM_CYCLES = 2
 
-ARR_ONE = [0, 1]#, 0, 0]
-ARR_TWO = [1, complex(1,5)]#, 0, 0]
+ARR_ONE = [5, 0]#, 0, 0]
+ARR_TWO = [0, 5]#, 0, 0]
 # ARR_THREE = [0, 0, 1, 0]
 # ARR_FOUR = [0, 0, 0, 1]
 VELOCITY_MATRIX = [ARR_ONE, ARR_TWO]#, ARR_THREE, ARR_FOUR]
 
 #including file constants
-FILEPATH = "Paper/rightFreq identity/Two Cells complex"
-FILENAME = "Two Cell Simulation csv.txt"
-WEIGHTS_OUTPUT = "two cell calculated weights new"
-
-#Dictionary Keys that we want
-PRES_0_real = 'pressure 0 real'
-PRES_0_imag = 'pressure 0 imag'
-PRES_1_real = 'pressure 1 real'
-PRES_1_imag = 'pressure 1 imag'
-PRES_2_real = 'pressure 2 real'
-PRES_2_imag = 'pressure 2 imag'
-PRES_3_real = 'pressure 3 real'
-PRES_3_imag = 'pressure 3 imag'
-PRES_4_real = 'pressure 4 real'
-PRES_4_imag = 'pressure 4 imag'
-
-
-
-PRES_6_real = 'pressure 6 real'
-PRES_6_imag = 'pressure 6 imag'
-
+FILEPATH = "Paper/Two Cells identity checks"
+FILENAME = "simulation names csv.txt"
+WEIGHTS_OUTPUT = "v5,5/Two cells 2 Ports calculated weights"
+PORTFILE = "ports.txt"
 
 
 #helper funciton used to strip the last term of a lines
@@ -44,12 +29,14 @@ def stripEnd(line):
 	line = line.strip("\n")
 	return line
 
+#updates the classes we're calling functions from 
 class updateClasses(object):
 	def __init__(self):
 		gtw.updateClass(NUM_CYCLES, VELOCITY_MATRIX)
 		getIndependent_Base.updateClass(NUM_CYCLES)
 
-
+#loads the outputted CSV file from cpp processing
+#results in 
 class loadFile(object):
 	def __init__(self):
 		self.DIR = os.path.dirname(__file__)
@@ -74,7 +61,8 @@ class loadFile(object):
 			self.loadCSV()
 			self.finalSim.append(self.mapping)
 
-	#generates the parameters for the dictionary
+	#generates the parameters for the dictionary for extracting
+	#gets rid of blanks and frequency parameters
 	def generateParams(self, row):
 		self.params = []
 		for key in row.keys():
@@ -103,37 +91,50 @@ class loadFile(object):
 
 class calculateTransmission(gtw.getTransmissionWeights):
 	def __init__(self, transmissionMatrix):
+		self.dir = os.path.dirname(__file__)
 		self.tm = transmissionMatrix
 		self.frequencies = self.tm[0].keys()
-		self.generatePresKeys()
+		self.generatePresKeys(PORTFILE)
 		self.solveMatrix()
 
-	def generatePresKeys(self):
-		self.presKeys = [PRES_0_real, PRES_0_imag, PRES_6_real, PRES_6_imag]
-		# self.presKeys = [PRES_0_real, PRES_0_imag, PRES_1_real, PRES_1_imag, PRES_2_real, PRES_2_imag, PRES_3_real, PRES_3_imag]
+	#generates the pressure keys based upon the import file 
+	def generatePresKeys(self, portFile):
+		filePath = os.path.join(self.dir, FILEPATH, PORTFILE)
+		presNumbers = []
+		with open(filePath) as f:
+			lines = f.readlines()
+			for i in range(len(lines)):
+				lines[i] = stripEnd(lines[i])
+				presNumbers += lines[i].split(',')
+
+		presNumbers = [str(int(presNumbers[i])-1) for i in range(NUM_CYCLES)] #needed for normalizatoin because I was lazy in CPP
+
+		#generates a tuple for pressure keys
+		self.presKeys = [("pressure " + presNumbers[i] + " real", "pressure " + presNumbers[i] + " imag") for i in range(NUM_CYCLES)]
+		print self.presKeys
 
 
+	#presNumber represents which pressure number is being solved for 
 	def createcomplexPres(self, freq, presNumber):
 		self.tempComplex = []
-		for i in range(NUM_CYCLES):
-			self.tempComplex.append(complex(float(self.tm[i][freq][self.presKeys[presNumber*2]]), float(self.tm[i][freq][self.presKeys[presNumber*2 +1]])))
-			print "real is: ", self.tm[i][freq][self.presKeys[presNumber*2]], "imag is: ",  self.tm[i][freq][self.presKeys[presNumber*2 + 1]]
-		# print self.tempComplex
-		# self.tempComplex.append(complex(float(self.tm[0][freq][self.presKeys[presNumber]]), float(self.tm[])))
+		#list generation to get the values from pressures
+		self.tempComplex = [complex(float(self.tm[i][freq][self.presKeys[presNumber][0]]), float(self.tm[i][freq][self.presKeys[presNumber][1]])) for i in range(NUM_CYCLES)]
+
+		print self.tempComplex
 
 
-	#gets
+	#overrides getTransmissionWeight's method of get pressure
+	#results in a manipulation of the current passed in function 
+	#index represents which pressure you're solving for 
 	def getPressure(self, freq, index):
 		self.pressureVector = []
 		self.createcomplexPres(freq, index)
 		self.pressureVector = self.tempComplex
-		# for i in range(NUM_CYCLES):
-			# self.pressureVector.append(self.tempComplex[i])
 
 
 def main():
 	updateClasses()
-	PVDict = loadFile().getCSV()
+	PVDict = loadFile().getCSV() #gets the pressure velocity dictionary to manipulate
 	# print PVDict[0][25000.0]
 	# print PVDict[1][25000.0]
 	tw = calculateTransmission(PVDict)
