@@ -29,13 +29,14 @@ struct connectionPair {
 
 
 //Constants for coding
-const string TRANSMISSION_VALUES = "Paper/Paper Copy independent/coalesced transmission values.csv";
-const string TRANSMISSION_WEIGHTS = "Paper/Paper Copy independent/calculated transmission values.csv";
-const string TRANSMISSION_PRIME = "Paper/Paper Copy independent/transmission prime values.csv";
-const string OUTPUTFILE = "Paper/Paper Copy independent/calculated 2 cell.csv";
+const string TRANSMISSION_VALUES = "Paper/rightFreq identity/coalesced transmission values.csv";
+const string TRANSMISSION_WEIGHTS = "Paper/rightFreq identity/calculated transmission values.csv";
+const string TRANSMISSION_PRIME = "Paper/rightFreq identity/transmission prime values.csv";
+const string OUTPUTFILE = "Paper/rightFreq identity/new code calculated two cells v";
 
-const int NUM_CYCLES = 4; //Matrix dimensions
+const int NUM_CYCLES = 4; //Input transmission Matrix dimensions
 const int NUM_STRUCTURES = 2; //Defines the number of linked structures
+// const int MATRIX_DIM = 8;
 const int MATRIX_DIM = pow(NUM_CYCLES,2); // Dimension of the final matrix
 const int NUM_CLOSED = 4;
 const int NUM_PORTS = 2;
@@ -48,9 +49,12 @@ static void printMap(map<string, vector<double> > currMap);
 static void retreiveData(map<string, vector<double> > &transmissionMap, map<string, vector<double> > &transmissionVal, map<string, vector<double> > &transmissionPrime);
 static void compileMatrix(map<string, vector<double> > currMap, map <string, MatrixX4cd> &compiledMatrix);
 static void generateSingleMatrix(string key, map<string, vector <double > > currMap, MatrixXcd &finalMatrix);
-static void systemSolve(map<string, vector <double> > currMap, map<string, VectorXcd> &resultMap);
-static void generateSolutionVector(VectorXcd &solutionVector);
-static void outputCSV(map<string, VectorXcd> resultMap);
+static void systemSolve(map<string, vector <double> > currMap, map<string, VectorXcd> &resultMap, int iterationNum);
+static void generateSolutionVector(VectorXcd &solutionVector, int iterationNum);
+static void outputCSV(map<string, VectorXcd> resultMap, string outputFile);
+static string makeFilename(int iterationNum);
+static void runSolver(map<string, vector <double> > transmissionWeights);
+
 
 //initialize Closed Vector
 static void initClosedVect(){
@@ -75,8 +79,8 @@ static void initConnectionVect() {
 
 //initializes port vector
 static void initPortVect() {
-	PORT_VECTOR.push_back(1);
-	PORT_VECTOR.push_back(7);	
+	PORT_VECTOR.push_back(1);	
+	PORT_VECTOR.push_back(7);
 }
 
 //Overall initialize vector function
@@ -106,35 +110,60 @@ int main() {
 	map<string, vector<double> > transmissionPrime; // The weights for tranmission prime
 	retreiveData(transmissionMap, transmissionVal, transmissionPrime);
 
-	map<string, VectorXcd> resultMap;
+	// printMap(transmissionVal);
 
-	systemSolve(transmissionVal, resultMap);
-	outputCSV(resultMap);
+	runSolver(transmissionVal);
+
 	return 0;
 }
 
-static void systemSolve(map<string, vector <double> > currMap, map<string, VectorXcd> &resultMap) {
+static void runSolver(map<string, vector <double> > transmissionWeights) {
+	for (int i = 0; i < NUM_PORTS; i ++) {
+		map<string, VectorXcd> resultMap;
+		systemSolve(transmissionWeights, resultMap, i);
+		outputCSV(resultMap, makeFilename(i));
+	}
+}
 
-	for (map<string, vector<double> >:: iterator itm = currMap.begin(); itm != currMap.end(); itm ++) {
+static void systemSolve(map<string, vector <double> > currMap, map<string, VectorXcd> &resultMap, int iterationNum) {
+	cout << "in system solve" << endl;
+	MatrixXcd tempFinal;
+	VectorXcd tempresu;
+	VectorXcd tempSol;
+	for (map<string, vector<double> >:: iterator itm = currMap.begin(); itm != next(currMap.begin(), 1); itm ++) {
+		// cout << "frequency is: " << itm->first << endl;
 		MatrixXcd finalMatrix = MatrixXcd::Zero(MATRIX_DIM, MATRIX_DIM);
 		generateSingleMatrix(itm->first, currMap, finalMatrix); // pass in the current key to the map
-		
+	
+
 		VectorXcd solutionVector = VectorXcd::Zero(MATRIX_DIM);
-		generateSolutionVector(solutionVector);
+		generateSolutionVector(solutionVector, iterationNum);
 
 		// cout << "Solution Vector is: " << solutionVector << endl << "Solution matrix is: " << finalMatrix << endl;
 		VectorXcd resultVector = finalMatrix.colPivHouseholderQr().solve(solutionVector);
 
 		// cout << resultVector << endl << endl;
-
+		// cout << "solutionVector is: " << solutionVector << endl << endl << endl;
+		// cout << "solving matrix is: " << finalMatrix << endl << endl << endl;
 		resultMap[itm->first] = resultVector;
+		tempFinal = finalMatrix;
+		tempresu = solutionVector;
+		tempSol = resultVector;
 	}
+
+	cout << tempFinal << endl;
+	cout << tempresu << endl;
+	cout << tempSol << endl;
+
 }
 
 //updates a zero'd out solution vector (right hand side) to get a proper solution vector
-static void generateSolutionVector(VectorXcd &solutionVector) {
-	solutionVector[MATRIX_DIM - 2] = 2e-13;
-	solutionVector[0] = 3e-13;
+//currently only updates a singular entry 
+static void generateSolutionVector(VectorXcd &solutionVector, int iterationNum) {
+	solutionVector[MATRIX_DIM - 1] = complex <double> (1.0, 5.0);
+	solutionVector[MATRIX_DIM - NUM_PORTS + iterationNum] = 1;
+	// solutionVector[MATRIX_DIM - 2] = 1;
+	// solutionVector[MATRIX_DIM-1] = 1;
 }
 
 
@@ -150,24 +179,26 @@ static void generateClosedPorts(MatrixXcd & closedMatrix) {
 }
 
 //Given a connectionPair struct, update the matrix so the given parameters are satisfied
-static void updateConnectionMatrix(MatrixXcd & connectionMatrix, int row, connectionPair currPair) {
+static void updateConnectionMatrix(MatrixXcd & connectionMatrix, int row, connectionPair currPair, int connectionCounter) {
 	int presCol = getPressure_Col(currPair.first);
 	int presCol_next = getPressure_Col(currPair.second);
-	connectionMatrix(row, presCol) = 1;
-	connectionMatrix(row, presCol_next) = 1;
+	connectionMatrix(2*row, presCol) = 1;
+	connectionMatrix(2*row, presCol_next) = -1;
 	
 	int velCol = getVelocity_Col(currPair.first);
 	int velCol_inverse = getVelocity_Col(currPair.second);
-	connectionMatrix(row, velCol) = 1;
-	connectionMatrix(row, velCol_inverse) = -1;
+	connectionMatrix(2*row + 1, velCol) = 1;
+	connectionMatrix(2*row + 1, velCol_inverse) = 1;
+	// cout << connectionCounter << endl;
+
 }
 
 //Funciton used to generate the connection ports
 static void generateConnectionPorts(MatrixXcd & connectionMatrix) {
 	//iterate through the number of connection rows
-	for (int row = 0; row < CONNECTION_VECTOR.size() * 2; row ++) {
+	for (int row = 0; row < CONNECTION_VECTOR.size(); row ++) {
 		for (vector<connectionPair>::iterator itv = CONNECTION_VECTOR.begin(); itv != CONNECTION_VECTOR.end(); itv ++) {
-			updateConnectionMatrix(connectionMatrix, row, *itv);
+			updateConnectionMatrix(connectionMatrix, row, *itv, row);
 		}
 	}
 }
@@ -175,21 +206,40 @@ static void generateConnectionPorts(MatrixXcd & connectionMatrix) {
 //Generate the matrix for the ports
 static void generatePortMatrix(MatrixXcd & portMatrix) {
 	for (int row = 0; row < PORT_VECTOR.size(); row ++) {
-		int col = getPressure_Col(PORT_VECTOR[row]);
+		int col = getVelocity_Col(PORT_VECTOR[row]);
 		portMatrix(row, col) = 1;
 	}
 }
+
+//Fills the first block "identity plus tranmission weights matrix"
+static void fillBlock(MatrixXcd &transmissionNode, int blockNum, MatrixX4cd currTransmission) {
+	for (int rowIter = 0; rowIter < NUM_CYCLES; rowIter ++) {
+		for (int colIter = 0; colIter < NUM_CYCLES * 2; colIter ++) {
+			int currRow = blockNum * NUM_CYCLES + rowIter;
+			int currCol = blockNum * (NUM_CYCLES * 2) + colIter;
+			
+			if (rowIter == colIter)
+				transmissionNode(currRow, currCol) = 1;
+			if (colIter > 3)
+				transmissionNode(currRow, currCol) = -currTransmission(rowIter, colIter-NUM_CYCLES);
+		}
+	}
+}
+
 //Generate the intial large transmission matrix
 static void generate_TransmissionNode_Matrix(MatrixXcd &transmissionNode, string key, map<string, MatrixX4cd> compiledMatrix) {
 	MatrixXcd tempMatrix = MatrixXcd::Zero(NUM_CYCLES * NUM_STRUCTURES, MATRIX_DIM);
 	MatrixXcd identityMatrix = MatrixXcd::Identity(NUM_CYCLES, NUM_CYCLES);
 	MatrixXcd zeroMatrix = MatrixXcd::Zero(NUM_CYCLES, NUM_CYCLES);
 
-	transmissionNode << identityMatrix, -compiledMatrix[key], zeroMatrix, zeroMatrix, zeroMatrix, zeroMatrix, identityMatrix, -compiledMatrix[key];
-
+	//iterates through all of the structures
+	for (int i = 0; i < NUM_STRUCTURES; i ++) {
+		fillBlock(transmissionNode, i, compiledMatrix[key]);
+	}
 }
 
-//generate a singular solution matrix
+//generate a singular solution matrix 
+//the A p(w) = b(w) in the equation 
 static void generateSingleMatrix(string key, map<string, vector <double > > currMap, MatrixXcd &finalMatrix) {
 	map <string, MatrixX4cd> compiledMatrix;
 	compileMatrix(currMap, compiledMatrix);
@@ -210,7 +260,7 @@ static void generateSingleMatrix(string key, map<string, vector <double > > curr
 
 }
 
-//Takes in a map of complex values, and then generates the associated matrices
+//Takes in a map of complex values, and then rearranges the data for the associated matrices
 static void compileMatrix(map<string, vector<double> > currMap, map <string, MatrixX4cd> &compiledMatrix) {
 	for (map<string, vector<double> > :: iterator itm = currMap.begin(); itm != currMap.end(); itm ++) {
 		vector <double> tempVect = currMap[itm->first]; // gets the vector associated with the current key
@@ -233,6 +283,7 @@ static void compileMatrix(map<string, vector<double> > currMap, map <string, Mat
 static string generateCSVString(VectorXcd currVector) {
 	string outputString = "";
 	// cout << "current size is: " << currVector.size()  << endl;
+	// cout << currVector << endl;
 	for (int i = 0; i < currVector.size(); i ++) {
 
 		stringstream tempStream;
@@ -242,26 +293,39 @@ static string generateCSVString(VectorXcd currVector) {
 		outputString += tempStream.str();
 	}
 	outputString += "\n";
-	// cout << outputString;
+
 	return outputString;
+}
+
+//Makes the filename to be used for the outputCSV
+static string makeFilename(int iterationNum) {
+	string tempFilename = OUTPUTFILE;
+	for (int i = 0; i < NUM_PORTS; i ++) {
+		if (i == iterationNum)
+			tempFilename += "1-1, ";
+		else
+			tempFilename += "0, ";
+	}
+	return tempFilename + ".csv";
 }
 
 static string generateCSVHeader() {
 	string header = "Frequency,";
-	for (int i = 0; i < NUM_CYCLES; i ++) {
+	for (int i = 0; i < NUM_STRUCTURES * 2; i ++) {
 		for (int j = 0; j < NUM_CYCLES; j ++) {
 			header += i%2 == 0 ? "pressure ": "velocity ";
-			header += to_string(i/2*4 + j) + " real " ",";
+			header += to_string(i/2*NUM_CYCLES + j) + " real,";
 			header += i%2 == 0 ? "pressure ": "velocity ";
-			header += to_string(i/2*4 + j) + " imag" ",";
+			header += to_string(i/2*NUM_CYCLES + j) + " imag,";
 		}
 	}
+	cout << header << endl;
 	return header + "\n";
 }
 
-static void outputCSV(map<string, VectorXcd> resultMap) {
+static void outputCSV(map<string, VectorXcd> resultMap, string outputfile) {
 	ofstream output;
-	output.open(OUTPUTFILE);
+	output.open(outputfile);
 	//iterating through all of the result map
 	output << generateCSVHeader();
 	for (map<string, VectorXcd>:: iterator itm = resultMap.begin(); itm != resultMap.end(); itm ++) {
@@ -325,7 +389,7 @@ static void printMap(map<string, vector<double > > currMap) {
 		for (vector<double>:: iterator itv = currVector.begin(); itv != currVector.end(); itv ++) {
 			cout << *itv << ", ";
 		}
-		cout << endl;
+		cout << endl << endl << endl;
 	}
 
 }

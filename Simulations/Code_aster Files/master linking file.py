@@ -17,26 +17,48 @@ import get_identity_matrix as getIndependent_Base #needed to update some stuff f
 validateNodes = __import__("validate node consistency")
 calcImpedance = __import__("impedance from transmission matrix")
 
-NUM_CYCLES = 4
+NUM_CYCLES = 2
 
-ARR_ONE = [1, 0, 0, 0]
-ARR_TWO = [0, 1, 1, 1]
-ARR_THREE = [0, 1, 0, 1]
-ARR_FOUR = [0, 0, 1, 1]
-VELOCITY_MATRIX = [ARR_ONE, ARR_TWO, ARR_THREE, ARR_FOUR]
+ARR_ONE = [1, 0]#, 0, 0]
+ARR_TWO = [0, 1]#, 0, 0]
+# ARR_THREE = [0, 0, 1, 0]
+# ARR_FOUR = [0, 0, 0, 1]
+VELOCITY_MATRIX = [ARR_ONE, ARR_TWO]#, ARR_THREE, ARR_FOUR]
 VELOCITY_VECTOR = [0] * NUM_CYCLES #Used in finding the independent matrix
-NEW_VELOCITIES = [12, 13, 4, 3] #used in crossValidation -- needs to be changed to match the length of the velocity
+NEW_VELOCITIES = [12, 13]#, 4, 3] #used in crossValidation -- needs to be changed to match the length of the velocity
+
+print VELOCITY_MATRIX
 
 #file linked names
-filepath = "Paper/rightFreq fullRank"#"Paper/rightFreq independent"
-simulationFile = "paperCheck.txt"
-listennode = "collimator listennode.txt"
+filepath = "Paper/Two Cells"#"Paper/rightFreq independent"
+simulationFile = "Two cell check.txt"
+listennode = "Two Cell listennode.txt"
+TESTNO = "Two Cell "
 # faceNodes = "cylinder listennode.txt" #Used to make sure the face mesh is tight enough to ensure simulation convergence 
 tempOutput = "temp"
-coalescedOutput_values = "coalesced transmission values"
-identityOutput = "transmission prime values" #outputs transmission prime
-weightsOutput = "calculated transmission values" #outputs the transmission matrix values 
-impedanceOutput = "calculated impedance" #output impedance CSV
+coalescedOutput_values = TESTNO + "coalesced transmission values"
+identityOutput = TESTNO + "transmission prime values" #outputs transmission prime
+weightsOutput = TESTNO + "calculated transmission values" #outputs the transmission matrix values 
+impedanceOutput = TESTNO + "calculated impedance" #output impedance CSV
+
+def updateSelf(numCycles, VelocityMatrix, newVelocities):
+	global NUM_CYCLES, VELOCITY_MATRIX, VELOCITY_VECTOR, NEW_VELOCITIES
+	NUM_CYCLES = numCycles
+	VELOCITY_MATRIX = VelocityMatrix
+	NEW_VELOCITIES = newVelocities
+	VELOCITY_VECTOR = [0] * NUM_CYCLES
+
+
+def updateFilenames(PATH, SIMULATION, LISTENNODE, TEMP, COALESCED, IDENTITY, WEIGHTS, IMPEDANCE):
+	global filepath, simulationFile, listennode, tempOutput, coalescedOutput_values, identityOutput, weightsOutput, impedanceOutput
+	filepath = PATH
+	simulationFile = SIMULATION
+	listennode = LISTENNODE
+	tempOutput = TEMP
+	coalescedOutput_values = COALESCED
+	identityOutput = IDENTITY
+	weightsOutput = WEIGHTS
+	impedanceOutput = IMPEDANCEc
 
 #updates all of the classes to be consistent with the given parameters
 class massiveUpdate(object):
