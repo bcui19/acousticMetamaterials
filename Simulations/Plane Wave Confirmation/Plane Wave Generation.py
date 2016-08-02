@@ -19,7 +19,7 @@ ROW_SPACING = 0.5
 MIDPOINT = (NUM_PORTS-1)/2.0 * PORT_SPACING
 
 FREQ_LOW = 25000
-FREQ_HIGH = 50000
+FREQ_HIGH = 30000
 FREQ_DIFF = 12
 
 def generateSourceLoc(port_NUM):
@@ -56,10 +56,10 @@ class source(object):
 		complexComponent = math.e ** (complex(0, -1)*(self.calculateWavenumber(frequency)*tempDist))
 		try:
 			currList = self.pressure[frequency]
-			currList.append(self.amplitude/tempDist *complexComponent)
+			currList.append((detector, self.amplitude/tempDist *complexComponent))
 			self.pressure[frequency] = currList
 		except KeyError:
-			tempList = [self.amplitude/tempDist * complexComponent]
+			tempList = [(detector, self.amplitude/tempDist * complexComponent)]
 			self.pressure[frequency] = tempList
 
 		return self.amplitude/tempDist * complexComponent
@@ -69,9 +69,24 @@ class source(object):
 class detector:
 	def __init__(self, xloc, yloc):
 		self.location = (xloc, yloc)
+		self.pressure = {}
 
 	def returnLoc(self):
 		return self.location
+
+	def sumPressure(self, freq, port):
+		currPressure = self.pressure[freq] if freq in self.pressure else 0
+		temptupleList = port[freq]
+		finIndex = 0
+		for i in range(len(temptupleList)):
+			currDetector = temptupleList[i]
+			currLocation = currDetector.returnLoc()
+			if currLocation == self.location:
+				print "it works"
+				finTuple = finIndex
+
+
+
 
 class runGeneration:
 	def __init__(self):
@@ -86,13 +101,25 @@ class runGeneration:
 
 	#generates pressures for a broad range of frequencies
 	def generatePressure(self):
-		# tempList = []
+		self.generatePortPressure()
+		self.generateDetecturePressure()
+
+	def generateDetectorPresure(self):
+		for detector in self.detectorList:
+			detector.sumPressure(freq, port (for freq in self.frequencies) (for port in self.portList))
+
+	def generatePortPressure(self):
 		for i in range(NUM_PORTS):
 			for j in range(NUM_DETECTORS * NUM_ROWS):
 					currDetector = self.detectorList[j]
 					for freq in self.frequencies:
 						self.portList[i].calculatePressure(currDetector, freq)
-		# print tempList
+
+	def returnPorts(self):
+		return self.portList
+
+	def returnFreq(self):
+		return self.frequencies
 
 	def printLocations(self):
 		for i in range(NUM_PORTS):
@@ -101,8 +128,25 @@ class runGeneration:
 			print self.detectorList[i].returnLoc()
 		# print len(self.detectorList)
 
+class validate:
+	def __init__(self, generator):
+		self.generator = generator
+		self.portList = self.generator.returnPorts()
+		self.frequencies = self.generator.returnFreq()
+
+		self.validateFreq()
+
+	def validateFreq(self):
+		for freq in self.frequencies:
+			for port in portList:
+				self.validatePort(port, freq)
+
+	# def validatePort(self, port, freq):
+
+
 if __name__ == "__main__":
-	runGeneration()
+	generator = runGeneration()
+	validate(generator)
 	print math.e**(complex(0,1)*math.pi)
 
 
