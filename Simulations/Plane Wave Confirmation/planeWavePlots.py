@@ -30,11 +30,13 @@ class graphResu():
 
 	def generateLoc(self, inputVal):
 		locList = []
-		for key in self.pressureVals:
-			detectorList = self.pressureVals[key].keys()
-			for detector in detectorList:
+		for detector in self.pressureVals:
+			locList.append(self.pressureVals[detector][1][0 if inputVal == 0 else 1])
+		# for key in self.pressureVals:
+		# 	detectorList = self.pressureVals[key].keys()
+		# 	for detector in detectorList:
 
-				locList.append(self.pressureVals[key][detector][1][0 if inputVal == 0 else 1])
+		# 		locList.append(self.pressureVals[key][detector][1][0 if inputVal == 0 else 1])
 		return locList
 
 	def generateColors(self):
@@ -44,12 +46,12 @@ class graphResu():
 			self.colors += self.tempColor
 
 	def getColor(self, key):
-		detectorList = self.pressureVals[key].keys()
+		# detectorList = self.pressureVals[key].keys()
 		scalingFactor = 1e4
 		previousFactor = scalingFactor
 		while True:
-			for detector in detectorList:
-				pressure = abs(self.pressureVals[key][detector][0]).real
+			for detector in self.pressureVals:
+				pressure = abs(self.pressureVals[detector][0]).real
 				if pressure * scalingFactor < 0.5:
 					previousFactor = scalingFactor
 					scalingFactor *= 2
@@ -67,14 +69,45 @@ class graphResu():
 				# print "previous Factor is: ", previousFactor, "scaling Factor is: ", scalingFactor
 				previousFactor = scalingFactor
 		
-		self.tempColor = [(0, 1, abs(self.pressureVals[key][detector][0].real)*scalingFactor) for detector in detectorList]
+		self.tempColor = [(0, 1, abs(self.pressureVals[detector][0].real)*scalingFactor) for detector in self.pressureVals]
+
 
 class graphDiff(graphResu):
-	def __init__(self, pressureVals):
+	def __init__(self, pressureVals, error):
 		self.pressureVals = pressureVals
+		self.error = error
 		self.graphPressure()
+		# self.getColor(0)
 
 	def getColor(self, key):
+		detectorList = self.pressureVals[key].keys()
+		print "keys are: ", self.error.keys()
+		self.errorRatio = [abs(self.error[key][i]/self.pressureVals[key][detectorList[i]][0]) for i in range(len(detectorList)-1)]
+
+		scalingFactor = 10
+		previousFactor = scalingFactor
+		while True:
+			for ratio in self.errorRatio:
+				calcRatio = abs(math.log(ratio, 10))
+				if calcRatio * scalingFactor < 0.1:
+					previousFactor = scalingFactor
+					scalingFactor *= 2
+					break
+				elif calcRatio * scalingFactor > 1.0:
+					prevousFactor = scalingFactor
+					scalingFactor /= 2.5
+					break
+			if previousFactor == scalingFactor:
+				break
+			else:
+				# print "previous Factor is: ", previousFactor, "scaling Factor is: ", scalingFactor
+				previousFactor = scalingFactor
+
+
+
+		print "self.errorRatio is:", self.errorRatio
+		self.tempColor = [(0, 0, abs(math.log(self.errorRatio[i],10))*scalingFactor) for i in range(len(detectorList)-1)]
+
 
 
 
@@ -83,7 +116,7 @@ if __name__ == "__main__":
 	pressures = planeWave.returnPressure()
 	error = planeWave.returnError()
 	graphResu(pressures)
-	graphDiff(pressures, error)
+	# graphDiff(pressures, error)
 
 
 

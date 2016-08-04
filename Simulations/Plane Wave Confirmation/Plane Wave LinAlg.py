@@ -90,6 +90,7 @@ class runCalculation:
 	def getWavenumber(self, freq):
 		return 2.0*math.pi/self.getWavelength(freq)
 
+	#creates a dictionary of detectors to ports of the constants 
 	def calculateConst(self, freq, iterNum):
 		self.getDistanceDict()
 		self.constDict = {}
@@ -104,8 +105,9 @@ class runCalculation:
 
 		self.calculateDifferences(iterNum)
 
+
+	#calculates the differences between detectors to form a matrix
 	def calculateDifferences(self, iterNum):
-		self.diffMatrix = []
 		midPoint = len(self.detectorDict[iterNum])/2-1
 		refDetector = self.detectorDict[iterNum][midPoint]
 		refList = self.constDict[refDetector]
@@ -117,6 +119,7 @@ class runCalculation:
 			tempResu = [i-j for i, j in zip(tempConstList, refList)]
 			self.diffMatrix.append(tempResu)
 
+	#creates a dictionary from detectors to a list of distances from ports
 	def getDistanceDict(self):
 		self.detectDistDict = {}
 		for detector in self.detectorList:
@@ -131,6 +134,35 @@ class runCalculation:
 			for j in range(i+1, len(self.detectDistDict)):
 				if self.detectDistDict[keys[i]] == self.detectDistDict[keys[j]]:
 					print "whoops"
+
+	#Gets a larger dictionary of the constants lol 
+	def getfullConstDict(self, freq):
+		self.tempDict = {}
+		for key in self.detectorDict:
+			self.detectorList = self.detectorDict[key]
+			self.getDistanceDict()
+			self.tempDict[key] = self.detectDistDict
+
+		self.concatenateDicts()
+		self.fullConstDict = {}
+		for detector in self.updateDistDict:
+			tempDistList = self.updateDistDict[detector]
+			self.constVector = [math.e**(complex(0, -1) *self.getWavenumber(freq) *dist/dist) for dist in tempDistList]
+			self.fullConstDict[detector] = self.constVector[:]
+
+		print "finished creating full const dict"
+
+
+	#Do I need this code?
+	def getRefDict(self, iterNum):
+		midpoint = len(self.detectorDict[iterNum])/2-1
+		self.refDetector = self.detectorDict[iterNum][midPoint]
+
+	def concatenateDicts(self):
+		self.updateDistDict = {}
+		for key in self.tempDict:
+			self.updateDistDict.update(self.tempDict[key])
+
 
 	def solveFreq(self):
 		for freq in self.frequencies:
@@ -147,38 +179,31 @@ class runCalculation:
 	def solveSystem(self, freq):
 		self.pressureDict = {}
 		self.errorDict = {}
+		self.diffMatrix = []
 		for key in self.detectorDict:
 			self.detectorList = self.detectorDict[key]
 			self.calculateConst(freq, key)
 			
-			eps = 1.5e-15
-			while True:
-				self.result = self.nullSpace(eps).T
-				if self.checkResu():
-					break
-				eps *= 2 if self.result.shape[0] == 0 else 1/1.5
-				# print eps
 
-			self.pressureDict[key] = self.tempPressureDict
-			self.errorDict[key] = np.dot(self.diffMatrix, self.result.T)
-		print len(self.pressureDict)
-		print "Num rows is: ",NUM_ROWS
-		tempKeys =  self.pressureDict[0].keys()
-		# print tempKeys
-		# print self.pressureDict[0][tempKeys[0]][1][0]
+		eps = 1.5e-15
+		while True:
+			self.result = self.nullSpace(eps).T
+			if self.checkResu(freq):
+				break
+			eps *= 2 if self.result.shape[0] == 0 else 1/1.5
+			# print eps
 
-	def checkResu(self):
-		# print self.result.shape
+
+
+	def checkResu(self, freq):
 		if self.result.shape[0] != 1:
 			return False
-		# print "result vector is: \n", self.result , "\n"
-		# print "checking is: \n", np.dot(self.diffMatrix, self.result.T)
+		self.getfullConstDict(freq)
 		self.calculatePressure()
-		# print self.tempPressureDict
 		return True
 
 	def calculatePressure(self):
-		self.tempPressureDict = {detector : (np.dot(self.constDict[detector], self.result.T), detector.returnLoc()) for detector in self.constDict}
+		self.pressureDict = {detector : (np.dot(self.fullConstDict[detector], self.result.T), detector.returnLoc()) for detector in self.fullConstDict}
 
 	def returnPressure(self):
 		return self.pressureDict
@@ -194,7 +219,10 @@ if __name__ == "__main__":
 	calculation = runCalculation()
 	pressures = calculation.returnPressure()
 	errors = calculation.returnError()
-	print errors[0]
+	print pressures
+	# print pressures
+	# print errors[0]
+	# print len(errors[0])
 
 
 

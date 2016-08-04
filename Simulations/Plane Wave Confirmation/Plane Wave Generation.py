@@ -7,7 +7,7 @@ RHO = 1.2041 #density of air
 
 
 #define constants
-NUM_PORTS = 10
+NUM_PORTS = 11
 NUM_DETECTORS = 50
 DETECTOR_MID = NUM_DETECTORS/2.0
 NUM_ROWS = 1
@@ -19,7 +19,7 @@ ROW_SPACING = 0.5
 MIDPOINT = (NUM_PORTS-1)/2.0 * PORT_SPACING
 
 FREQ_LOW = 25000
-FREQ_HIGH = 30000
+FREQ_HIGH = 26000
 FREQ_DIFF = 12
 
 def generateSourceLoc(port_NUM):
@@ -40,6 +40,9 @@ class source(object):
 
 	def returnLoc(self):
 		return self.location
+
+	def returnPressure(self):
+		return self.pressure
 
 	def calcDistance(self, detector):
 		return ((self.location[0] - detector.returnLoc()[0])**2 + (self.location[1] - detector.returnLoc()[1])**2)**0.5
@@ -74,18 +77,24 @@ class detector:
 	def returnLoc(self):
 		return self.location
 
+	def returnPressure(self):
+		return self.pressure
+
+	#need to complete this function
 	def sumPressure(self, freq, port):
 		currPressure = self.pressure[freq] if freq in self.pressure else 0
-		temptupleList = port[freq]
+		portPressure = port.returnPressure()
+		temptupleList = portPressure[freq]
 		finIndex = 0
 		for i in range(len(temptupleList)):
-			currDetector = temptupleList[i]
+			currDetector = temptupleList[i][0]
 			currLocation = currDetector.returnLoc()
 			if currLocation == self.location:
-				print "it works"
-				finTuple = finIndex
-
-
+				finIndex = i
+				break
+		# print temptupleList[finIndex][1]
+		currPressure += temptupleList[finIndex][1]
+		self.pressure[freq] = currPressure
 
 
 class runGeneration:
@@ -102,11 +111,15 @@ class runGeneration:
 	#generates pressures for a broad range of frequencies
 	def generatePressure(self):
 		self.generatePortPressure()
-		self.generateDetecturePressure()
+		self.generateDetectorPresure()
+
 
 	def generateDetectorPresure(self):
 		for detector in self.detectorList:
-			detector.sumPressure(freq, port (for freq in self.frequencies) (for port in self.portList))
+			for freq in self.frequencies:
+				for port in self.portList:
+					detector.sumPressure(freq, port)
+			# detector.sumPressure(freq, port (for freq in self.frequencies for port in self.portList))
 
 	def generatePortPressure(self):
 		for i in range(NUM_PORTS):
@@ -114,6 +127,9 @@ class runGeneration:
 					currDetector = self.detectorList[j]
 					for freq in self.frequencies:
 						self.portList[i].calculatePressure(currDetector, freq)
+
+	def returnDetectors(self):
+		return self.detectorList
 
 	def returnPorts(self):
 		return self.portList
@@ -128,26 +144,39 @@ class runGeneration:
 			print self.detectorList[i].returnLoc()
 		# print len(self.detectorList)
 
-class validate:
+class validateAbsolute:
 	def __init__(self, generator):
 		self.generator = generator
-		self.portList = self.generator.returnPorts()
+		self.detectorList = self.generator.returnDetectors()
 		self.frequencies = self.generator.returnFreq()
 
 		self.validateFreq()
 
 	def validateFreq(self):
 		for freq in self.frequencies:
-			for port in portList:
-				self.validatePort(port, freq)
+			for i in range(len(self.detectorList)-1):
+				currDetector = self.detectorList[i]
+				for j in range(i+1, len(self.detectorList)):
 
-	# def validatePort(self, port, freq):
+					nextDetector = self.detectorList[j]
+					if currDetector.returnPressure()[freq] == nextDetector.returnPressure()[freq]:
+						print "it worked"
+						print "indexes are: (", i, ",", j, ")", "and values are: (", currDetector.returnPressure()[freq], ",", nextDetector.returnPressure()[freq], ")"
+
+						continue
+					# print "indexes are: (", i, ",", j, ")", "and values are: (", currDetector.returnPressure()[freq], ",", nextDetector.returnPressure()[freq], ")"
+
+# class validatePhase(validateAbolute):
+# 	def validateFreq(self):
+# 		for freq in self.frequencies:
+# 			for i in range(len(self.detectorList)-1):
 
 
 if __name__ == "__main__":
 	generator = runGeneration()
-	validate(generator)
+	validateAbsolute(generator)
 	print math.e**(complex(0,1)*math.pi)
+
 
 
 
