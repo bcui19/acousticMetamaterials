@@ -9,7 +9,10 @@ import numpy as np
 import math
 import itertools
 import matplotlib.pyplot as plt
+import copy
 
+def calculateDetector_Midpoint():
+	return NUM_DETECTORS/2
 
 #some mathematical constants that seem somewhat useful
 SPEED_OF_SOUND = 343.21 #in m/s
@@ -19,7 +22,7 @@ RHO = 1.2041 #density of air
 #define constants
 NUM_PORTS = 11
 NUM_DETECTORS = 20
-DETECTOR_MID = NUM_DETECTORS/2.0
+DETECTOR_MID = calculateDetector_Midpoint()
 NUM_ROWS = 10
 
 PORT_SPACING = 0.0011375
@@ -34,6 +37,17 @@ FREQ_DIFF = 12
 
 #Colors 
 COLOR_ARR = []
+
+
+
+#acts as a global update for convenience 
+def globalUpdate(numRows, numPorts, numDetectors):
+	global NUM_PORTS, NUM_ROWS, NUM_DETECTORS, DETECTOR_MID
+	NUM_PORTS = numPorts
+	NUM_ROWS = numRows
+	NUM_DETECTORS = numDetectors
+	DETECTOR_MID = calculateDetector_Midpoint()
+
 
 def generateSourceLoc(port_NUM):
 	return port_NUM * PORT_SPACING
@@ -113,8 +127,8 @@ class runCalculation:
 		refList = self.constDict[refDetector]
 
 		for detector in self.constDict:
-			if detector == refDetector:
-				continue
+			# if detector == refDetector:
+				# continue
 			tempConstList = self.constDict[detector]
 			tempResu = [i-j for i, j in zip(tempConstList, refList)]
 			self.diffMatrix.append(tempResu)
@@ -145,12 +159,28 @@ class runCalculation:
 
 		self.concatenateDicts()
 		self.fullConstDict = {}
-		for detector in self.updateDistDict:
-			tempDistList = self.updateDistDict[detector]
-			self.constVector = [math.e**(complex(0, -1) *self.getWavenumber(freq) *dist/dist) for dist in tempDistList]
-			self.fullConstDict[detector] = self.constVector[:]
+		self.fullDiffDict = {}
 
-		print "finished creating full const dict"
+		#constructs the constant na ddiff dict 
+		for key in self.tempDict:
+			tempDict = {}
+			for detector in self.tempDict[key]:
+				tempDistList = self.updateDistDict[detector]
+				self.constVector = [math.e**(complex(0, -1)  * self.getWavenumber(freq) * dist)/dist for dist in tempDistList]
+				tempDict[detector] = copy.copy(self.constVector)
+			self.fullConstDict[key] = tempDict
+
+			midpoint = len(self.detectorDict[key])/2-1
+			refDetector = self.detectorDict[key][midpoint]
+			refList = self.fullConstDict[key][refDetector]
+			
+			tempDict = {}
+			for detector in self.fullConstDict[key]:
+				diffList = [i-j for i, j in zip(self.fullConstDict[key][detector], refList)]
+				tempDict[detector] = diffList
+
+			self.fullDiffDict[key] = tempDict
+
 
 
 	#Do I need this code?
@@ -194,7 +224,6 @@ class runCalculation:
 			# print eps
 
 
-
 	def checkResu(self, freq):
 		if self.result.shape[0] != 1:
 			return False
@@ -203,7 +232,9 @@ class runCalculation:
 		return True
 
 	def calculatePressure(self):
-		self.pressureDict = {detector : (np.dot(self.fullConstDict[detector], self.result.T), detector.returnLoc()) for detector in self.fullConstDict}
+		self.pressureDict = {}
+		for key in self.fullConstDict:
+			self.pressureDict[key] = {detector: (np.dot(self.fullConstDict[key][detector], self.result.T), detector.returnLoc()) for detector in self.fullConstDict[key]}
 
 	def returnPressure(self):
 		return self.pressureDict
@@ -211,7 +242,8 @@ class runCalculation:
 	def returnError(self):
 		return self.errorDict
 
-
+	def getResult(self):
+		return self.result
 
 
 
@@ -220,7 +252,7 @@ if __name__ == "__main__":
 	pressures = calculation.returnPressure()
 	errors = calculation.returnError()
 	print pressures
-	# print pressures
+
 	# print errors[0]
 	# print len(errors[0])
 
