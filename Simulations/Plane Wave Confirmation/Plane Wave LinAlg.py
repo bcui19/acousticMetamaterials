@@ -6,9 +6,9 @@ where A is the constant value represented by e^{-kx}/r and b is the zero vector
 '''
 
 import numpy as np
-import scipy.sparse.linalg
 import math
 import itertools
+import matplotlib.pyplot as plt
 
 
 #some mathematical constants that seem somewhat useful
@@ -20,9 +20,9 @@ RHO = 1.2041 #density of air
 NUM_PORTS = 11
 NUM_DETECTORS = 20
 DETECTOR_MID = NUM_DETECTORS/2.0
-NUM_ROWS = 1
+NUM_ROWS = 10
 
-PORT_SPACING = 0.001
+PORT_SPACING = 0.0011375
 DETECTOR_SPACING = 0.00025
 ROW_SPACING = 0.05
 
@@ -31,6 +31,9 @@ MIDPOINT = (NUM_PORTS-1)/2.0 * PORT_SPACING
 FREQ_LOW = 25000
 FREQ_HIGH = 25012
 FREQ_DIFF = 12
+
+#Colors 
+COLOR_ARR = []
 
 def generateSourceLoc(port_NUM):
 	return port_NUM * PORT_SPACING
@@ -60,12 +63,11 @@ class detector:
 class runCalculation:
 	def __init__(self):
 		self.portList = [source(generateSourceLoc(i), SPEED_OF_SOUND) for i in range(NUM_PORTS)]
-		self.detectorDict = {j: [detector(generateDetectorX(i), generateDetectorY(j)) for i in range(NUM_DETECTORS) for j in range(NUM_ROWS)]}
+		self.detectorDict = {j: [detector(generateDetectorX(i), generateDetectorY(j)) for i in range(NUM_DETECTORS)] for j in range(NUM_ROWS)}
+
 		self.generateFrequencies()
 
 		self.solveFreq()
-		# self.printLocations()
-		# self.printDetectors()
 
 	def generateFrequencies(self):
 		self.frequencies = [FREQ_LOW + i*FREQ_DIFF for i in itertools.takewhile(lambda x: FREQ_LOW + x *FREQ_DIFF < FREQ_HIGH, range((FREQ_HIGH-FREQ_LOW)/FREQ_DIFF))]
@@ -115,11 +117,6 @@ class runCalculation:
 			tempResu = [i-j for i, j in zip(tempConstList, refList)]
 			self.diffMatrix.append(tempResu)
 
-
-
-	def calculateResu(self):
-		self.result = [[0]]*NUM_DETECTORS
-
 	def getDistanceDict(self):
 		self.detectDistDict = {}
 		for detector in self.detectorList:
@@ -142,38 +139,67 @@ class runCalculation:
 	#eps defines the accuracy of the solution 
 	#calculates solutions to the nullspace
 	#eps needs to be adjusted depending upon the number of ports we're working with 
-	def nullSpace(self, eps = 5e-14):
+	def nullSpace(self, eps = 1.5e-10):
 		u, s, vh = np.linalg.svd(self.diffMatrix)
 		self.null_space = np.compress(s <=eps, vh, axis = 0)
 		return self.null_space.T
 
 	def solveSystem(self, freq):
+		self.pressureDict = {}
+		self.errorDict = {}
 		for key in self.detectorDict:
 			self.detectorList = self.detectorDict[key]
 			self.calculateConst(freq, key)
-			self.calculateResu()
-			# print self.diffMatrix
+			
+			eps = 1.5e-15
+			while True:
+				self.result = self.nullSpace(eps).T
+				if self.checkResu():
+					break
+				eps *= 2 if self.result.shape[0] == 0 else 1/1.5
+				# print eps
 
-			# self.result = np.linalg.solve(self.diffMatrix, self.result)
-			# self.result = scipy.sparse.linalg.lsqr(self.diffMatrix, self.result)
-			self.result = self.nullSpace().T
+			self.pressureDict[key] = self.tempPressureDict
+			self.errorDict[key] = np.dot(self.diffMatrix, self.result.T)
+		print len(self.pressureDict)
+		print "Num rows is: ",NUM_ROWS
+		tempKeys =  self.pressureDict[0].keys()
+		# print tempKeys
+		# print self.pressureDict[0][tempKeys[0]][1][0]
 
-			self.readResu()
-			self.checkResu()
 	def checkResu(self):
-		print "result vector is: \n", self.result , "\n"
-		print "checking is: \n", np.dot(self.diffMatrix, self.result.T)
+		# print self.result.shape
+		if self.result.shape[0] != 1:
+			return False
+		# print "result vector is: \n", self.result , "\n"
+		# print "checking is: \n", np.dot(self.diffMatrix, self.result.T)
+		self.calculatePressure()
+		# print self.tempPressureDict
+		return True
 
-	def readResu(self):
-		print self.result.shape
-		# print self.result[0]
+	def calculatePressure(self):
+		self.tempPressureDict = {detector : (np.dot(self.constDict[detector], self.result.T), detector.returnLoc()) for detector in self.constDict}
+
+	def returnPressure(self):
+		return self.pressureDict
+
+	def returnError(self):
+		return self.errorDict
 
 
 
 
 
 if __name__ == "__main__":
-	runCalculation()
+	calculation = runCalculation()
+	pressures = calculation.returnPressure()
+	errors = calculation.returnError()
+	print errors[0]
+
+
+
+
+
 
 
 
