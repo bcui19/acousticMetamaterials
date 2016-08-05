@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-calcWave = __import__("Plane Wave LinAlg")
+calcWave = __import__("Plane Wave Least Squares")
 
 
 class imPlotting:

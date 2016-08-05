@@ -30,11 +30,19 @@ class leastSquaresWave(waveCalculation.runCalculation):
 		# print self.pressureDict
 		self.differences = {key : {detector: np.dot(self.fullDiffDict[key][detector], self.result) for detector in self.fullDiffDict[key]} for key in self.fullDiffDict }
 		# print self.differences.keys()
-		print len(self.differences[0])
+		# key = self.differences[0].keys()[0]
+		self.getMaxDiff()
+
+	def getMaxDiff(self):
+		self.maxDiff = complex(0,0)
+		for key in self.differences:
+			for detector in self.differences[key]:
+				self.maxDiff = self.differences[key][detector] if np.absolute(self.differences[key][detector]) > np.absolute(self.maxDiff) else self.maxDiff
+
+		print "Max diff is: ", self.maxDiff
 
 	def constructRHS(self):
 		self.rhs = [self.diffMatrix[i][(NUM_PORTS-1)/2] for i in range(len(self.diffMatrix))]
-		# print self.rhs
 
 
 
