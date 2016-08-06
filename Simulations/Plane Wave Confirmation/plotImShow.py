@@ -12,17 +12,16 @@ class imPlotting:
 
 	def plot(self):
 		self.generateArr()
-		im = plt.imshow(self.arr, cmap = "cool")
+		im = plt.imshow(self.arr, cmap = "rainbow")
+		plt.autoscale(enable = True, axis = 'both', tight = None)
 		plt.colorbar(im, orientation = "horizontal")
 		plt.show()
 
 	def generateArr(self):
 		self.arr = []
 		for key in self.pressures:
-			# print self.pressures[key][detector]
+
 			self.arr.append([self.pressures[key][detector][0].real for detector in self.pressures[key]])
-			# for detector in self.pressures[key]:
-				# print type(self.pressures[key][detector][0])
 		# print self.arr
 
 
