@@ -28,15 +28,13 @@ NUM_ROWS = 10
 PORT_SPACING = 0.0011375
 DETECTOR_SPACING = 0.00025
 ROW_SPACING = 0.05
+DETECTOR_OFFSET = 1
 
 MIDPOINT = (NUM_PORTS-1)/2.0 * PORT_SPACING
 
 FREQ_LOW = 25000
 FREQ_HIGH = 25012
 FREQ_DIFF = 12
-
-#Colors 
-COLOR_ARR = []
 
 
 
@@ -48,6 +46,15 @@ def globalUpdate(numRows, numPorts, numDetectors):
 	NUM_DETECTORS = numDetectors
 	DETECTOR_MID = calculateDetector_Midpoint()
 
+def spacingUpdate(pspacing= PORT_SPACING, dspacing = DETECTOR_SPACING, rspacing = ROW_SPACING, dOffset = DETECTOR_OFFSET):
+	global PORT_SPACING, DETECTOR_SPACING, ROW_SPACING, DETECTOR_OFFSET, MIDPOINT
+	PORT_SPACING = pspacing
+	DETECTOR_SPACING = dspacing
+	ROW_SPACING = rspacing
+	DETECTOR_OFFSET = dOffset
+	MIDPOINT = (NUM_PORTS-1)/2.0 * PORT_SPACING
+
+
 
 def generateSourceLoc(port_NUM):
 	return port_NUM * PORT_SPACING
@@ -56,7 +63,7 @@ def generateDetectorX(detectorNum):
 	return MIDPOINT + (detectorNum - DETECTOR_MID+1) * DETECTOR_SPACING
 
 def generateDetectorY(rowNum):
-	return (rowNum + 1) * ROW_SPACING
+	return (rowNum) * ROW_SPACING
 
 class source:
 	def __init__(self, location, speed):
@@ -68,7 +75,7 @@ class source:
 
 class detector:
 	def __init__(self, xLoc, yLoc):
-		self.location = (xLoc, yLoc)
+		self.location = (xLoc, DETECTOR_OFFSET + yLoc)
 
 	def returnLoc(self):
 		return self.location
@@ -78,6 +85,10 @@ class runCalculation:
 	def __init__(self):
 		self.portList = [source(generateSourceLoc(i), SPEED_OF_SOUND) for i in range(NUM_PORTS)]
 		self.detectorDict = {j: [detector(generateDetectorX(i), generateDetectorY(j)) for i in range(NUM_DETECTORS)] for j in range(NUM_ROWS)}
+
+		self.printLocations()
+		# for i in range(len(self.detectorDict[0])):
+		# 	print "detector Loc is: ", self.detectorDict[0][i].returnLoc()
 
 		self.generateFrequencies()
 
@@ -122,7 +133,7 @@ class runCalculation:
 
 	#calculates the differences between detectors to form a matrix
 	def calculateDifferences(self, iterNum):
-		midPoint = len(self.detectorDict[iterNum])/2-1
+		midPoint = len(self.detectorDict[iterNum])/2
 		refDetector = self.detectorDict[iterNum][midPoint]
 		refList = self.constDict[refDetector]
 
@@ -131,9 +142,10 @@ class runCalculation:
 				# continue
 			tempConstList = self.constDict[detector]
 			tempResu = [i-j for i, j in zip(tempConstList, refList)]
-			self.diffMatrix.append(tempResu)
+			self.diffMatrix.append(tempResu[:])
 
 	#creates a dictionary from detectors to a list of distances from ports
+	#dictionary is: {detector: distance List}
 	def getDistanceDict(self):
 		self.detectDistDict = {}
 		for detector in self.detectorList:
@@ -161,7 +173,7 @@ class runCalculation:
 		self.fullConstDict = {}
 		self.fullDiffDict = {}
 
-		#constructs the constant na ddiff dict 
+		#constructs the constant and diff dict 
 		for key in self.tempDict:
 			tempDict = {}
 			for detector in self.tempDict[key]:
