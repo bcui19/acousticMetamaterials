@@ -133,7 +133,7 @@ class runCalculation:
 
 	#calculates the differences between detectors to form a matrix
 	def calculateDifferences(self, iterNum):
-		midPoint = len(self.detectorDict[iterNum])/2-1
+		midPoint = len(self.detectorDict[iterNum])/2
 		refDetector = self.detectorDict[iterNum][midPoint]
 		refList = self.constDict[refDetector]
 
@@ -142,10 +142,10 @@ class runCalculation:
 				# continue
 			tempConstList = self.constDict[detector]
 			tempResu = [i-j for i, j in zip(tempConstList, refList)]
-			print tempResu
-			self.diffMatrix.append(tempResu)
+			self.diffMatrix.append(tempResu[:])
 
 	#creates a dictionary from detectors to a list of distances from ports
+	#dictionary is: {detector: distance List}
 	def getDistanceDict(self):
 		self.detectDistDict = {}
 		for detector in self.detectorList:

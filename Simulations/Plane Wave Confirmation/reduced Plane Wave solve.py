@@ -6,9 +6,9 @@ leastSqPlane = __import__("Plane Wave Least Squares")
 
 #define constants
 NUM_PORTS = 11
-NUM_DETECTORS = 20
+NUM_DETECTORS = 35
 DETECTOR_MID = NUM_DETECTORS/2
-NUM_ROWS = 20
+NUM_ROWS = 35
 
 PORT_SPACING = 0.0011375
 DETECTOR_SPACING = 0.0005
@@ -32,24 +32,28 @@ class reducedLeastSquaresWave(leastSqPlane.leastSquaresWave):
 		self.constructRHS()
 		self.reduceMatrix()
 
-		self.leastSqResu =  np.linalg.lstsq(self.reducedMatrix, self.rhs, rcond = 1e-20)[0]
+		self.leastSqResu =  np.linalg.lstsq(self.reducedMatrix, self.rhs, rcond = 1e-4)[0]
 		self.getSVD(freq)
+		# print self.diffMatrix
 		print "result is: \n", self.leastSqResu
 		print "SVD result is [0]: \n", self.resultSVDResu[0]
 		# print "SVD result is [1]: \n", self.resultSVDResu[1]
 
 		tempDetector = self.fullConstDict[0].keys()[0]
-		print "detector vals are: ", self.fullConstDict[0][tempDetector]
+		# print "detector vals are: ", self.fullConstDict[0][tempDetector]
 
 		# self.getfullConstDict(freq)
 		self.normalizeVals()
 		self.calcPressure()
 
-		print "storage array is: ", self.storArr
-		print self.nullPressure[0]
-		print self.svdPressure[0]
-		# self.graphDecay(self.nullPressure, "Least Squares Pressure Plot")
-		# self.graphDecay(self.svdPressure, "SVD Pressure Plot")
+		# print np.dot(self.diffMatrix,self.leastSqResu)
+		# print np.dot(self.diffMatrix, self.svdResu)
+
+		# print "storage array is: ", self.storArr
+		# print self.nullPressure[0]
+		# print self.svdPressure[0]
+		self.graphDecay(self.nullPressure, "Least Squares Pressure Plot")
+		self.graphDecay(self.svdPressure, "SVD Reduced Pressure Plot")
 
 	# def checkSolution(self):
 
@@ -72,7 +76,7 @@ class reducedLeastSquaresWave(leastSqPlane.leastSquaresWave):
 		self.reducedMatrix = []
 		self.storArr = []
 		for i in range(len(self.diffMatrix)):
-			tempArray = self.diffMatrix[i]
+			tempArray = self.diffMatrix[i][:]
 			# print "length of array was: ", len(tempArray)
 			self.storArr.append(tempArray[midpoint-1])
 			del tempArray[midpoint]
@@ -81,7 +85,7 @@ class reducedLeastSquaresWave(leastSqPlane.leastSquaresWave):
 		print "size of matrix is: ", len(self.reducedMatrix)
 
 	def nullSpace(self, eps = 1.5e-10):
-		u, s, vh = np.linalg.svd(self.diffMatrix)
+		u, s, vh = np.linalg.svd(self.reducedMatrix)
 		self.null_space = np.compress(s <=eps, vh, axis = 0)
 		return self.null_space.T
 
