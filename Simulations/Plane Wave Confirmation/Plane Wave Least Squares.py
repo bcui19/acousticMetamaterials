@@ -51,7 +51,7 @@ class leastSquaresWave(waveCalculation.runCalculation):
 		print "midpoint is: ", self.result[(NUM_PORTS)/2]
 
 	def constructRHS(self):
-		self.rhs = [self.diffMatrix[i][(NUM_PORTS)/2] for i in range(len(self.diffMatrix))]
+		self.rhs = [-self.diffMatrix[i][(NUM_PORTS)/2] for i in range(len(self.diffMatrix))]
 
 # def calculatePressure(self):
 # 		self.pressureDict = {}

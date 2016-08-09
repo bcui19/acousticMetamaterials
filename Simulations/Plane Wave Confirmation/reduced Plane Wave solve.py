@@ -34,8 +34,9 @@ class reducedLeastSquaresWave(leastSqPlane.leastSquaresWave):
 
 		self.leastSqResu =  np.linalg.lstsq(self.reducedMatrix, self.rhs, rcond = 1e-4)[0]
 		self.getSVD(freq)
+
 		# print self.diffMatrix
-		print "result is: \n", self.leastSqResu
+		# print "result is: \n", self.leastSqResu
 		# print "SVD result is [0]: \n", self.resultSVDResu[0]
 		# print "SVD is: ", self.SVD
 		# print "SVD result is [1]: \n", self.resultSVDResu[1]
@@ -143,7 +144,13 @@ class reducedLeastSquaresWave(leastSqPlane.leastSquaresWave):
 		x = [(i+1) * DETECTOR_SPACING for i in range(NUM_DETECTORS)]
 		y = [pressureDict[99][detector][0].real for detector in pressureDict[99]]
 
-		print y
+
+		print min(y)
+		print max(y)
+		print "percent diff is: ", (max(y)- min(y))/min(y)
+
+		for detector in pressureDict[0]:
+			print detector.returnLoc()
 		plt.plot(x, y, "k")
 		plt.title(title)
 		plt.show()
