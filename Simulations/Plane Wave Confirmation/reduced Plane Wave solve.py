@@ -6,13 +6,13 @@ leastSqPlane = __import__("Plane Wave Least Squares")
 
 #define constants
 NUM_PORTS = 11
-NUM_DETECTORS = 35
+NUM_DETECTORS = 20
 DETECTOR_MID = NUM_DETECTORS/2
-NUM_ROWS = 35
+NUM_ROWS = 100
 
 PORT_SPACING = 0.0011375
 DETECTOR_SPACING = 0.0005
-ROW_SPACING = 0.005
+ROW_SPACING = 0.0005
 DETECTOR_OFFSET = 0.1
 
 MIDPOINT = (NUM_PORTS-1)/2.0 * PORT_SPACING
@@ -36,14 +36,16 @@ class reducedLeastSquaresWave(leastSqPlane.leastSquaresWave):
 		self.getSVD(freq)
 		# print self.diffMatrix
 		print "result is: \n", self.leastSqResu
-		print "SVD result is [0]: \n", self.resultSVDResu[0]
+		# print "SVD result is [0]: \n", self.resultSVDResu[0]
+		# print "SVD is: ", self.SVD
 		# print "SVD result is [1]: \n", self.resultSVDResu[1]
 
-		tempDetector = self.fullConstDict[0].keys()[0]
+		# tempDetector = self.fullConstDict[0].keys()[0]
 		# print "detector vals are: ", self.fullConstDict[0][tempDetector]
 
-		# self.getfullConstDict(freq)
 		self.normalizeVals()
+		# self.getfullConstDict(freq)
+
 		self.calcPressure()
 
 		# print np.dot(self.diffMatrix,self.leastSqResu)
@@ -52,8 +54,16 @@ class reducedLeastSquaresWave(leastSqPlane.leastSquaresWave):
 		# print "storage array is: ", self.storArr
 		# print self.nullPressure[0]
 		# print self.svdPressure[0]
-		self.graphDecay(self.nullPressure, "Least Squares Pressure Plot")
-		self.graphDecay(self.svdPressure, "SVD Reduced Pressure Plot")
+
+		self.plotEverything()
+
+
+	def plotEverything(self):
+		# self.graphDecay(self.nullPressure, "Least Squares Pressure Plot")
+		# self.graphDecay(self.svdPressure, "SVD Pressure Plot")
+
+		# self.graphXDecay(self.svdPressure, "SVD Pressure")
+		self.graphXDecay(self.nullPressure, "Least Squares Pressures")
 
 	# def checkSolution(self):
 
@@ -87,22 +97,27 @@ class reducedLeastSquaresWave(leastSqPlane.leastSquaresWave):
 	def nullSpace(self, eps = 1.5e-10):
 		u, s, vh = np.linalg.svd(self.reducedMatrix)
 		self.null_space = np.compress(s <=eps, vh, axis = 0)
-		return self.null_space.T
+		# print "SVD is: ", s
+		# print "unitary matrix is: ", vh
+		return self.null_space.T, s
 
 	def getSVD(self, freq):
-		eps = 1.5e-15
-		while True:
-			self.resultSVDResu = self.nullSpace(eps).T
+		eps = 1.5e-9
+		counter = 0
+		while True: #counter != 1
+			self.resultSVDResu, self.SVD = self.nullSpace(eps)
+			self.resultSVDResu = self.resultSVDResu.T
 			if self.validateResu(freq):
 				break
 			eps *= 2 if self.resultSVDResu.shape[0] <= 1 else 1/1.5
 			print "epsilon is: ", eps
+			# counter += 1
 		print self.resultSVDResu.shape
 
 	def validateResu(self, freq):
-		if self.resultSVDResu.shape[0] != 2:
-			print self.resultSVDResu.shape[0]
-			return False
+		# if self.resultSVDResu.shape[0] != 2:
+			# print self.resultSVDResu.shape[0]
+			# return False
 		self.getfullConstDict(freq)
 		return True
 
@@ -124,6 +139,14 @@ class reducedLeastSquaresWave(leastSqPlane.leastSquaresWave):
 		plt.title(title)
 		plt.show()
 
+	def graphXDecay(self, pressureDict, title):
+		x = [(i+1) * DETECTOR_SPACING for i in range(NUM_DETECTORS)]
+		y = [pressureDict[99][detector][0].real for detector in pressureDict[99]]
+
+		print y
+		plt.plot(x, y, "k")
+		plt.title(title)
+		plt.show()
 
 
 if __name__ == "__main__":
