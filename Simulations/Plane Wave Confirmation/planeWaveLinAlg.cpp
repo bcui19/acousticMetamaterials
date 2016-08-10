@@ -79,9 +79,6 @@ static MatrixXcd removeColumn(MatrixXcd matrix, unsigned int colToRemove);
 
 int main() {
 	runCalculation();
-	for (int i = 0; i < NUM_DETECTORS; i ++) {
-		cout << i << endl;
-	}
 	// cout << "linking works" << endl;
 	// cout << complex <int> (1,0) << endl;
 	// struct location tempLoc = {5, 4};
@@ -123,7 +120,7 @@ static void generatePorts() {
 		tempPort.init(currLoc);
 		portList.push_back(tempPort);
 	}
-	// printPorts();
+	printPorts();
 }
 
 static void printPorts(){
@@ -140,7 +137,7 @@ static void runCalculation() {
 	map < int, map <detector , vector <detectConst> > > constDict;
 	map <int, map <detector, vector <detectConst> > > diffDict;
 
-	int samplingPoint = 25;
+	int samplingPoint = 0;
 
 	for (int freq = FREQ_LOW; freq < FREQ_HIGH; freq += 12) {
 		createDistanceDict(distanceDict, constDict, freq);
@@ -150,12 +147,19 @@ static void runCalculation() {
 		MatrixXcd reducedMatrix = reduceMatrix(diffMatrix);
 		VectorXcd solution = leastSquaresSolve(reducedMatrix, rhs);
 		VectorXcd normalized = renormalizeResult(solution);
-		cout << "Matrix dimensions are: " << diffMatrix.cols() << " Cols and " << diffMatrix.rows() << " rows" << endl;
-		cout << "vector dimensions are: " << normalized.rows() << " Rows and " << normalized.cols() << endl;
-		VectorXcd pressureVec = diffMatrix * normalized;
+
+		MatrixXcd constMatrix = generateMatrix(constDict);
+
+		// cout << "Matrix dimensions are: " << constMatrix.cols() << " Cols and " << constMatrix.rows() << " rows" << endl;
+		// cout << "vector dimensions are: " << normalized.rows() << " Rows and " << normalized.cols() << endl;
+		VectorXcd pressureVec = constMatrix * normalized;
+
+		// for (int i = 0; i < NUM_PORTS; i ++) {
+		// cout << constMatrix(samplingPoint) << endl;
+		// }
 
 		for (int i = 0; i < NUM_DETECTORS; i ++) {
-			// cout << pressureVec(samplingPoint * NUM_DETECTORS + i) << endl;
+			cout << pressureVec(samplingPoint * NUM_DETECTORS + i).real() << endl;
 		}
 
 	}
@@ -177,7 +181,9 @@ static complex<double> calcConst(double distance, int freq) {
 }
 
 static double calculateDist(detector currDetector, port currPort) {
-	return pow((pow(currDetector.returnX() - currPort.returnX(), 2) + pow (currDetector.returnY()-currPort.returnY(), 2)), 0.5);
+	double result =  pow((pow(currDetector.returnX() - currPort.returnX(), 2) + pow (currDetector.returnY()-currPort.returnY(), 2)), 0.5);
+	// cout << "result is " << result << endl;
+	return result;
 }
 
 static void createDistanceDict(map<int, map < detector, vector <detectDist> > > &distanceDict, map<int, map <detector, vector <detectConst> > > &constDict, int freq) {
@@ -225,6 +231,7 @@ static void createDifferences(map <int, map <detector, vector <detectConst> > > 
 
 		detector refDetector = currKeys[NUM_DETECTORS/2];
 		vector <detectConst> refVector = currMap[refDetector];
+		cout << "ref detector Y loc is: " << refDetector.returnY() << endl;
 
 		map <detector, vector <detectConst> > tempResuMap;
 
@@ -290,18 +297,6 @@ static VectorXcd leastSquaresSolve(MatrixXcd diffMatrix, VectorXcd rhs) {
 	return diffMatrix.jacobiSvd(ComputeThinU |ComputeThinV).solve(rhs);
 }
 
-static MatrixXcd removeColumn(MatrixXcd matrix, unsigned int colToRemove) {
-    unsigned int numRows = matrix.rows();
-    unsigned int numCols = matrix.cols()-1;
-    MatrixXcd matrixCopy = matrix;
-
-    if( colToRemove < numCols )
-        matrixCopy.block(0,colToRemove,numRows,numCols-colToRemove) = matrixCopy.block(0,colToRemove+1,numRows,numCols-colToRemove);
-
-    matrixCopy.conservativeResize(numRows,numCols);
-    return matrixCopy;
-}
-
 static VectorXcd renormalizeResult(VectorXcd vector) {
 	VectorXcd result = VectorXcd::Zero(vector.rows()+1);
 	// cout << vector.rows() << endl;
@@ -315,6 +310,19 @@ static VectorXcd renormalizeResult(VectorXcd vector) {
 	}
 	// cout << result << endl;
 	return result;
+}
+
+
+static MatrixXcd removeColumn(MatrixXcd matrix, unsigned int colToRemove) {
+    unsigned int numRows = matrix.rows();
+    unsigned int numCols = matrix.cols()-1;
+    MatrixXcd matrixCopy = matrix;
+
+    if( colToRemove < numCols )
+        matrixCopy.block(0,colToRemove,numRows,numCols-colToRemove) = matrixCopy.block(0,colToRemove+1,numRows,numCols-colToRemove);
+
+    matrixCopy.conservativeResize(numRows,numCols);
+    return matrixCopy;
 }
 
 void removeRow(MatrixXcd & matrix, unsigned int rowToRemove) {
