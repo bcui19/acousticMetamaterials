@@ -8,6 +8,8 @@ for the n port system
 massiveLinking = __import__("master linking file")
 import itertools
 import numpy as np
+import copy
+gtw = __import__("get transmission weights")
 
 NUM_CYCLES = 4 #represents the nnumber of simulations 
 
@@ -34,9 +36,19 @@ weightsOutput = TESTNO + "calculated transmission values" #outputs the transmiss
 impedanceOutput = TESTNO + "calculated impedance" #output impedance CSV
 
 PRESSURE_INDEX = [1, 3] #indexes that are connected ports
+PRESSURE_RESU = [0 , 2]
 VELOCITY_INDEX = [5, 7] #indexes that are connected ports
 VELOCITY_INPUT = [4, 6]
 VELOCITY_RESU = [6,7] #the ports that we're defining velocity for 
+
+
+#defining new constants when needed 
+NEW_NUM_CYCLES = 2
+
+ARR_ONE = [1 , 0]
+ARR_TWO = [0 , 1]
+NEW_VELOCITY_MATRIX = [ARR_ONE, ARR_TWO]
+
 
 #calculates the new pressure and velocity values 
 class infiniteCalc:
@@ -54,12 +66,12 @@ class infiniteCalc:
 
 	def solveSystem(self):
 		self.resultStor = {}
-		# for freq in self.frequencies:
-		self.simStor = []
-		for i in range(NUM_CYCLES/2):
-			print "i is: ", i
-			self.generateMatrix(i, 44.0)
-		self.resultStor[44.0] = self.simStor
+		for freq in self.frequencies:
+			self.simStor = []
+			for i in range(NUM_CYCLES/2):
+				# print "i is: ", i
+				self.generateMatrix(i, freq)
+			self.resultStor[freq] = self.simStor
 
 	def generateMatrix(self, index, freq):
 		self.matrix = []
@@ -115,23 +127,52 @@ class infiniteCalc:
 		return self.resultStor
 
 class calculateTransmissionMatrix:
-	def __init__(self, infiniteResult):
+	def __init__(self, infiniteResult, frequencies):
 		self.infiniteResult = infiniteResult
+		self.frequencies = [44.0]
 		self.extractVals()
+		gtw.updateClass(NEW_NUM_CYCLES, NEW_VELOCITY_MATRIX)
+		print self.tm
+		tw = gtw.getTransmissionWeights(self.tm)
+		rtw = tw.returnWeights()
+		print rtw
+
 
 	def extractVals(self):
-		print "extracting vals"
+		print "self.infiniteResult is: ", self.infiniteResult
+
+		self.tm = [{}] * NUM_CYCLES
+		for i in range(NUM_CYCLES/2):
+			for j in range(len(PRESSURE_RESU)):
+				currDict = copy.copy(self.tm[2*i + j])
+
+				for freq in self.frequencies:
+					currArr = self.infiniteResult[freq][i]
+					nodeDict = {'node' : currArr[PRESSURE_RESU[j]]}
+					currDict[freq] = nodeDict
+
+				self.tm[2*i+j] = currDict
+
 
 if __name__ == "__main__":
 	massiveLinking.updateSelf(numCycles = NUM_CYCLES, velocityMatrix = VELOCITY_MATRIX, newVelocities = NEW_VELOCITIES)
 	massiveLinking.updateFilenames(filepath, simulationFile, listennode, tempOutput, coalescedOutput_values, identityOutput, weightsOutput, impedanceOutput)
 	linkedData = massiveLinking.massiveLinking()
 	frequencies = linkedData.returnWeights().keys()
+	rtm = linkedData.returnTransmissionMatrix()
+	# print rtm[1]
 	# print frequencies
 	infinitePlane = infiniteCalc(linkedData.returnWeights(), frequencies)
 	infiniteResult = infinitePlane.returnResult()
-	calculateTransmissionMatrix(infiniteResult)
+	calculateTransmissionMatrix(infiniteResult, frequencies)
 	# print infinitePlane.returnResult()[44.0][0]
 	# print infinitePlane.returnResult()[44.0][1]
 
 	# print 0
+
+
+
+
+
+
+
