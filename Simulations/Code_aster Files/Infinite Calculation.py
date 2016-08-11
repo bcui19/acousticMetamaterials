@@ -38,7 +38,7 @@ VELOCITY_INDEX = [5, 7] #indexes that are connected ports
 VELOCITY_INPUT = [4, 6]
 VELOCITY_RESU = [6,7] #the ports that we're defining velocity for 
 
-
+#calculates the new pressure and velocity values 
 class infiniteCalc:
 	def __init__(self, transmissionMatrix, frequencies):
 		self.frequencies = frequencies
@@ -53,10 +53,13 @@ class infiniteCalc:
 		# print "Identity matrix is: ", self.identity
 
 	def solveSystem(self):
+		self.resultStor = {}
 		# for freq in self.frequencies:
+		self.simStor = []
 		for i in range(NUM_CYCLES/2):
 			print "i is: ", i
 			self.generateMatrix(i, 44.0)
+		self.resultStor[44.0] = self.simStor
 
 	def generateMatrix(self, index, freq):
 		self.matrix = []
@@ -68,19 +71,19 @@ class infiniteCalc:
 			self.matrix.append(result)
 
 		self.createRHS(index)
-		self.resultMatrix = np.linalg.solve(self.matrix, self.rhs)
+		self.result = np.linalg.solve(self.matrix, self.rhs)
+		self.simStor.append(self.result)
 		# self.printMatrixInfo()
+
 
 	def printMatrixInfo(self):
 		print "matrix is: \n"
 		for i in range(NUM_CYCLES*2):
 			print self.matrix[i]
-
 		print "rhs is: ", self.rhs
-
 		print "result is: \n"
-		for i in range(len(self.resultMatrix)):
-			print self.resultMatrix[i]
+		for i in range(len(self.result)):
+			print self.result[i]
 
 	def generateTransmission(self, freq):
 		returnMatrix = []
@@ -108,6 +111,16 @@ class infiniteCalc:
 	def createRHS(self, index):
 		self.rhs = [0 if i != VELOCITY_RESU[index] else 1 for i in range(NUM_CYCLES*2)]
 
+	def returnResult(self):
+		return self.resultStor
+
+class calculateTransmissionMatrix:
+	def __init__(self, infiniteResult):
+		self.infiniteResult = infiniteResult
+		self.extractVals()
+
+	def extractVals(self):
+		print "extracting vals"
 
 if __name__ == "__main__":
 	massiveLinking.updateSelf(numCycles = NUM_CYCLES, velocityMatrix = VELOCITY_MATRIX, newVelocities = NEW_VELOCITIES)
@@ -115,6 +128,10 @@ if __name__ == "__main__":
 	linkedData = massiveLinking.massiveLinking()
 	frequencies = linkedData.returnWeights().keys()
 	# print frequencies
-	infiniteCalc(linkedData.returnWeights(), frequencies)
+	infinitePlane = infiniteCalc(linkedData.returnWeights(), frequencies)
+	infiniteResult = infinitePlane.returnResult()
+	calculateTransmissionMatrix(infiniteResult)
+	# print infinitePlane.returnResult()[44.0][0]
+	# print infinitePlane.returnResult()[44.0][1]
 
 	# print 0
