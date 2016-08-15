@@ -6,6 +6,8 @@ for the n port system
 
 
 massiveLinking = __import__("master linking file")
+calcPrime = __import__("Independent Matrix")
+import get_identity_matrix as gim
 import itertools
 import numpy as np
 import copy
@@ -38,8 +40,8 @@ impedanceOutput = TESTNO + "calculated impedance" #output impedance CSV
 PRESSURE_INDEX = [1, 3] #indexes that are connected ports
 PRESSURE_RESU = [0 , 2]
 VELOCITY_INDEX = [5, 7] #indexes that are connected ports
-VELOCITY_INPUT = [4, 6]
-VELOCITY_RESU = [6,7] #the ports that we're defining velocity for 
+VELOCITY_INPUT = [4, 6] #indexes for the ports that have an input velocity 
+VELOCITY_RESU = [6,7] #the indexes in the right hand side that we define the velocities for 
 
 
 #defining new constants when needed 
@@ -47,6 +49,7 @@ NEW_NUM_CYCLES = 2
 
 ARR_ONE = [1 , 0]
 ARR_TWO = [0 , 1]
+NEW_VELOCITY_VECTOR = [0] * NEW_NUM_CYCLES
 NEW_VELOCITY_MATRIX = [ARR_ONE, ARR_TWO]
 
 
@@ -117,6 +120,8 @@ class infiniteCalc:
 		returnList.append(self.velocityConstraints())
 		return returnList
 
+	#creates the last two rows of the matrix
+	#represents the 
 	def createVelocity(self, index, currIndex):
 		return [0 if i != VELOCITY_INPUT[currIndex] else 1 for i in range(NUM_CYCLES*2)]
 
@@ -132,14 +137,21 @@ class calculateTransmissionMatrix:
 		self.frequencies = [44.0]
 		self.extractVals()
 		gtw.updateClass(NEW_NUM_CYCLES, NEW_VELOCITY_MATRIX)
-		print self.tm
+		# print self.tm
+		
 		tw = gtw.getTransmissionWeights(self.tm)
 		rtw = tw.returnWeights()
-		print rtw
+
+		calcPrime.updateClass(NEW_NUM_CYCLES, NEW_VELOCITY_MATRIX)
+		gim.updateClass(NEW_NUM_CYCLES)
+		tPrime = calcPrime.independentMatrix(self.tm, self.frequencies, NEW_VELOCITY_VECTOR)
+
+		self.tPrime = tPrime.returnTransmission()
+		print self.tPrime
 
 
 	def extractVals(self):
-		print "self.infiniteResult is: ", self.infiniteResult
+		# print "self.infiniteResult is: ", self.infiniteResult
 
 		self.tm = [{}] * NUM_CYCLES
 		for i in range(NUM_CYCLES/2):
