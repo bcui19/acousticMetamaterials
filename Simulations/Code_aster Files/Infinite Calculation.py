@@ -56,7 +56,7 @@ NEW_VELOCITY_MATRIX = [ARR_ONE, ARR_TWO]
 #calculates the new pressure and velocity values 
 class infiniteCalc:
 	def __init__(self, transmissionMatrix, frequencies):
-		self.frequencies = frequencies
+		self.frequencies = [44.0]
 		self.transmissionMatrix = transmissionMatrix
 		self.getIdentity() #gets the identity matrix
 		self.solveSystem()
@@ -88,7 +88,7 @@ class infiniteCalc:
 		self.createRHS(index)
 		self.result = np.linalg.solve(self.matrix, self.rhs)
 		self.simStor.append(self.result)
-		# self.printMatrixInfo()
+		self.printMatrixInfo()
 
 
 	def printMatrixInfo(self):
@@ -147,7 +147,10 @@ class calculateTransmissionMatrix:
 		tPrime = calcPrime.independentMatrix(self.tm, self.frequencies, NEW_VELOCITY_VECTOR)
 
 		self.tPrime = tPrime.returnTransmission()
-		print self.tPrime
+		# print np.dot(self.tPrime[44.0], self.tPrime[44.0])
+
+	# def validateIdentity(self):
+		# for freq in self.tPrime:
 
 
 	def extractVals(self):
