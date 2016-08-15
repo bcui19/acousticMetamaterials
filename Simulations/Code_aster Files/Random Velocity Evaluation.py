@@ -15,8 +15,8 @@ NEW_VELOCITIES = [13, 17, 3, 21] #used in crossValidation -- needs to be changed
 # print VELOCITY_MATRIX
 
 #file linked names
-filepath = "New Dimensions/Code Checks"
-simulationFile = "New Dimensions Check.txt"
+filepath = "New Dimensions/Dense Mesh"
+simulationFile = "New Dimensions Check v1.txt"
 listennode = "New Dimensions Listennode.txt"
 TESTNO = "New Dimensions lowFreq"
 # faceNodes = "cylinder listennode.txt" #Used to make sure the face mesh is tight enough to ensure simulation convergence 
@@ -29,7 +29,7 @@ impedanceOutput = TESTNO + "calculated impedance" #output impedance CSV
 
 #file properties for random checking
 NEW_NUM_CYCLES = 4 #represents the new number of simulation files we need to process
-NEW_VELOCITIES = [13, 17, 3, 21]
+NEW_VELOCITIES = [13, 24, 5, 9]
 newSimulationFile = "random file check.txt"
 
 
@@ -39,25 +39,32 @@ class randomValidation:
 		self.velocities = velocities
 		self.frequencies = frequencies
 
+
 		#getting new data
 		gtm.updateClass(NEW_NUM_CYCLES, NEW_VELOCITIES)
 		self.randomTransmission = gtm.transmissionMatrix(filepath + "/" + newSimulationFile, filepath, listennode, tempOutput, 1)
 		self.randomtm = self.randomTransmission.returnTransmissionMatrix()
 
+		print self.rtm[44.0]
 		#some calculations
 		self.calcNewPressures()
-		self.validateData()
+		# self.validateData()
 
 	def calcNewPressures(self):
 		self.pressures = {freq: np.dot(self.rtm[freq], self.velocities) for freq in self.frequencies}
 
 	def validateData(self):
 		for freq in self.frequencies:
-			self.getSimData(44.0)
-			self.getCalcData(44.0)
+			self.getSimData(freq)
+			self.getCalcData(freq)
 			if self.compareData():
 				continue
-			print "we fucked up"
+			raise ValueError("The values don't match")
+		# self.getSimData(44.0)
+		# self.getCalcData(44.0)
+
+		print self.currArr
+		print self.calcData
 
 	def getSimData(self, freq):
 		self.currArr = []
