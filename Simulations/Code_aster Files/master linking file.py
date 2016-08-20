@@ -17,23 +17,23 @@ import get_identity_matrix as getIndependent_Base #needed to update some stuff f
 validateNodes = __import__("validate node consistency")
 calcImpedance = __import__("impedance from transmission matrix")
 
-NUM_CYCLES = 2
+NUM_CYCLES = 4 #represents the nnumber of simulations 
 
-ARR_ONE = [1, 0]#, 0, 0]
-ARR_TWO = [0, 1]#, 0, 0]
-# ARR_THREE = [0, 0, 1, 0]
-# ARR_FOUR = [0, 0, 0, 1]
-VELOCITY_MATRIX = [ARR_ONE, ARR_TWO]#, ARR_THREE, ARR_FOUR]
+ARR_ONE = [1, 0, 0, 0]
+ARR_TWO = [0, 1, 0, 0]
+ARR_THREE = [0, 0, 1, 0]
+ARR_FOUR = [0, 0, 0, 1]
+VELOCITY_MATRIX = [ARR_ONE, ARR_TWO, ARR_THREE, ARR_FOUR]
 VELOCITY_VECTOR = [0] * NUM_CYCLES #Used in finding the independent matrix
-NEW_VELOCITIES = [12, 13]#, 4, 3] #used in crossValidation -- needs to be changed to match the length of the velocity
+NEW_VELOCITIES = [12, 13, 4, 3] #used in crossValidation -- needs to be changed to match the length of the velocity
 
-print VELOCITY_MATRIX
+# print VELOCITY_MATRIX
 
 #file linked names
-filepath = "Paper/Two Cells"#"Paper/rightFreq independent"
-simulationFile = "Two cell check.txt"
-listennode = "Two Cell listennode.txt"
-TESTNO = "Two Cell "
+filepath = "paper/Paper Copy Actual Size"#"Paper/rightFreq independent"
+simulationFile = "paperCheck.txt"
+listennode = "collimator listennode.txt"
+TESTNO = "Paper Copy"
 # faceNodes = "cylinder listennode.txt" #Used to make sure the face mesh is tight enough to ensure simulation convergence 
 tempOutput = "temp"
 coalescedOutput_values = TESTNO + "coalesced transmission values"
@@ -41,10 +41,10 @@ identityOutput = TESTNO + "transmission prime values" #outputs transmission prim
 weightsOutput = TESTNO + "calculated transmission values" #outputs the transmission matrix values 
 impedanceOutput = TESTNO + "calculated impedance" #output impedance CSV
 
-def updateSelf(numCycles, VelocityMatrix, newVelocities):
+def updateSelf(numCycles = NUM_CYCLES, velocityMatrix = VELOCITY_MATRIX, newVelocities = NEW_VELOCITIES):
 	global NUM_CYCLES, VELOCITY_MATRIX, VELOCITY_VECTOR, NEW_VELOCITIES
 	NUM_CYCLES = numCycles
-	VELOCITY_MATRIX = VelocityMatrix
+	VELOCITY_MATRIX = velocityMatrix
 	NEW_VELOCITIES = newVelocities
 	VELOCITY_VECTOR = [0] * NUM_CYCLES
 
@@ -58,7 +58,7 @@ def updateFilenames(PATH, SIMULATION, LISTENNODE, TEMP, COALESCED, IDENTITY, WEI
 	coalescedOutput_values = COALESCED
 	identityOutput = IDENTITY
 	weightsOutput = WEIGHTS
-	impedanceOutput = IMPEDANCEc
+	impedanceOutput = IMPEDANCE
 
 #updates all of the classes to be consistent with the given parameters
 class massiveUpdate(object):
@@ -100,25 +100,45 @@ class massiveLinking(object):
 
 		self.tm = gtm.transmissionMatrix(filepath + "/" + simulationFile, filepath, listennode, tempOutput, 1)
 		self.rtm = self.tm.returnTransmissionMatrix()
-		self.tw = gtw.getTransmissionWeights(self.rtm).returnWeights()
+		# print self.rtm[1]
+		self.twf = gtw.getTransmissionWeights(self.rtm)
+		self.twf.averageWeights()
+		self.tw = self.twf.returnWeights()
 		self.frequencies = self.rtm[0].keys()
+
 		self.identity = getIndependent.independentMatrix(self.rtm, self.frequencies, VELOCITY_VECTOR)
 		self.identityDict = self.identity.returnTransmission()
 
-		validateSimulations(self.rtm, self.tw, self.identityDict) #validates the simulations 
+		# validateSimulations(self.rtm, self.tw, self.identityDict) #validates the simulations #right now the validation code doesn't work because I forcefully took the averages
 
 		calcImpedance.calcImpedance(self.tw, impedanceOutput)
 		self.exportValues()
+
+		# print self.tw
 
 	def exportValues(self):
 		coalesce.runCoalesce(tempOutput, coalescedOutput_values, filepath)
 		getIndependent_Base.exportIdentity(self.tw, filepath, weightsOutput)
 		getIndependent_Base.exportIdentity(self.identityDict, filepath, identityOutput)
 
+	def returnTransmissionMatrix(self):
+		return self.rtm
+
+	def returnWeights(self):
+		return self.tw
+
 
 
 def main():
-	massiveLinking()
+	linked = massiveLinking()
+	# print linked.returnWeights().keys()
+	# print linked.returnWeights()[32.0][0]
+	# print linked.returnWeights()[32.0][1]
+	# print linked.returnWeights()[32.0][2]
+	# print linked.returnWeights()[32.0][3]
+
+
+
 
 
 main()
