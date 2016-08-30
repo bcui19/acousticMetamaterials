@@ -71,8 +71,8 @@ def rewriteData(coalescedData, freqList, path, outputName):
 	outputfile = os.path.join(DIR, path, outputName + ".csv")
 	csvfile = open(outputfile, "w")
 	fieldnames = generateFieldnames("output")
-	print fieldnames
-	print "len of data is: ", len(coalescedData)
+	# print fieldnames
+	# print "len of data is: ", len(coalescedData)
 	writer = csv.DictWriter(csvfile, fieldnames = fieldnames)
 	writer.writeheader()
 	for i in range(len(coalescedData[0])):

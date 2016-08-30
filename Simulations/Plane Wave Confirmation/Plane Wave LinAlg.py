@@ -86,7 +86,7 @@ class runCalculation:
 		self.portList = [source(generateSourceLoc(i), SPEED_OF_SOUND) for i in range(NUM_PORTS)]
 		self.detectorDict = {j: [detector(generateDetectorX(i), generateDetectorY(j)) for i in range(NUM_DETECTORS)] for j in range(NUM_ROWS)}
 
-		self.printLocations()
+		# self.printLocations()
 		# for i in range(len(self.detectorDict[0])):
 		# 	print "detector Loc is: ", self.detectorDict[0][i].returnLoc()
 
@@ -110,7 +110,7 @@ class runCalculation:
 		return ((port.returnLoc() - detector.returnLoc()[0])**2 + (detector.returnLoc()[1])**2)**0.5
 
 	def getWavelength(self, freq):
-		return SPEED_OF_SOUND/freq
+		return float(SPEED_OF_SOUND)/freq
 
 	def getWavenumber(self, freq):
 		return 2.0*math.pi/self.getWavelength(freq)
@@ -133,15 +133,28 @@ class runCalculation:
 
 	#calculates the differences between detectors to form a matrix
 	def calculateDifferences(self, iterNum):
+		print "in calculateDifferences", iterNum
 		midPoint = len(self.detectorDict[iterNum])/2
 		refDetector = self.detectorDict[iterNum][midPoint]
 		refList = self.constDict[refDetector]
 
-		for detector in self.constDict:
-			# if detector == refDetector:
-				# continue
+		# for detector in self.constDict:
+		for j in range(len(self.constDict.keys())):
+			detector = self.constDict.keys()[j]
+			if detector == refDetector:
+				continue
 			tempConstList = self.constDict[detector]
-			tempResu = [i-j for i, j in zip(tempConstList, refList)]
+			tempResu = []
+			for i in range(len(tempConstList)):
+				difVal = tempConstList[i] - refList[i]
+				if difVal == 0:
+					print "detector Loc is: ", detector.returnLoc()
+					print "refdetector Loc is: ", refDetector.returnLoc()
+					print "port is: ", self.portList[i].returnLoc()
+					print "the value is zero at", i
+
+				tempResu.append(difVal)
+			# tempResu = [i-j for i, j in zip(tempConstList, refList)]
 			self.diffMatrix.append(tempResu[:])
 
 	#creates a dictionary from detectors to a list of distances from ports
@@ -158,6 +171,7 @@ class runCalculation:
 		keys = self.detectDistDict.keys()
 		for i in range(len(self.detectDistDict)-1):
 			for j in range(i+1, len(self.detectDistDict)):
+
 				if self.detectDistDict[keys[i]] == self.detectDistDict[keys[j]]:
 					print "whoops"
 

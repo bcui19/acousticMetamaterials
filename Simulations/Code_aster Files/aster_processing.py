@@ -98,7 +98,7 @@ class code_aster(object):
 		with open(self.path) as f:
 			lines = f.readlines() #reads the lines 
 			data = []
-			for i in range(lineStart, len(lines)):
+			for i in range(lineStart, 5000):# len(lines)):
 				line = lines[i].split(' ')
 				line = self.stripEnd(line)
 

@@ -5,3 +5,7 @@ how does impedance work with acoustic materials
 
 
 How are mass density and bulk modulus analogous to permeability and permittivity respectively?
+
+
+Intensity versus pressure?
+	- In the comm file given to me (which does the code_aster) processing, there is INT vs PRES, which one is more important 

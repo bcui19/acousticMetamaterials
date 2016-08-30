@@ -1,0 +1,6 @@
+- Check Node Consistency
+- Check tramission matrix: 
+	- make sure each row is a rotation essentially of the other rows
+		- The matrix isn't a translation of the other rows
+- Run for freq 1000.0 Hz:
+	-results much more reasonable esp for this frequency worst value is 8.089-05j

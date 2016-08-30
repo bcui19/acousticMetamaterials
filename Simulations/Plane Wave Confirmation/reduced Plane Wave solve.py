@@ -6,9 +6,9 @@ leastSqPlane = __import__("Plane Wave Least Squares")
 
 #define constants
 NUM_PORTS = 11
-NUM_DETECTORS = 100
+NUM_DETECTORS = 20
 DETECTOR_MID = NUM_DETECTORS/2
-NUM_ROWS = 100
+NUM_ROWS = 20
 
 PORT_SPACING = 0.0011375;
 DETECTOR_SPACING = 0.00025;
@@ -29,48 +29,65 @@ class reducedLeastSquaresWave(leastSqPlane.leastSquaresWave):
 			self.detectorList = self.detectorDict[key]
 			self.calculateConst(freq, key)
 
+		# print self.diffMatrix
+
 		self.constructRHS()
 		self.reduceMatrix()
 
 		self.leastSqResu =  np.linalg.lstsq(self.reducedMatrix, self.rhs, rcond = 1e-4)[0]
 		self.getSVD(freq)
 
-		# print self.diffMatrix
-		# print "result is: \n", self.leastSqResu
-		# print "SVD result is [0]: \n", self.resultSVDResu[0]
-		# print "SVD is: ", self.SVD
-		# print "SVD result is [1]: \n", self.resultSVDResu[1]
-
 		# tempDetector = self.fullConstDict[0].keys()[0]
 		# print "detector vals are: ", self.fullConstDict[0][tempDetector]
 
-		self.normalizeVals()
-		# self.getfullConstDict(freq)
+		self.normalizeVals() 
+		# print self.diffMatrix
+		counter = 0
 
-		self.calcPressure()
+		detector = self.detectorDict[1][0]
+
+		# for j in range(len(self.diffMatrix)):
+		# 	term = self.diffMatrix[j]
+		# 	if term == [complex(0,0)] * 11:
+		# 		continue
+		# 	# print term
+		# 	for i in range(len(term)):
+		# 		if term[i] == complex(0,0):
+		# 			counter += 1
+		# 			print "i is: ", i, "j is: ", j
+		# 			# print term[i]
+
+		print "num terms is: ", counter
+		# print self.rhs
+		# for term in self.rhs:
+			# print "currTerm is: ", term
+		# print self.leastSqResu
+
+		# self.getfullConstDict(freq) #I don't think I need this line of code
+
+		# self.calcPressure() #calculates the pressure
 
 		# print np.dot(self.diffMatrix,self.leastSqResu)
 		# print np.dot(self.diffMatrix, self.svdResu)
 
-		# print "storage array is: ", self.storArr
-		# print self.nullPressure[0]
-		# print self.svdPressure[0]
-
-		self.plotEverything()
+		# self.plotEverything()
 
 
 	def plotEverything(self):
+		for detector in self.nullPressure[99]:
+			print self.nullPressure[99][detector][0].real
+
 		# self.graphDecay(self.nullPressure, "Least Squares Pressure Plot")
 		# self.graphDecay(self.svdPressure, "SVD Pressure Plot")
 
 		# self.graphXDecay(self.svdPressure, "SVD Pressure")
-		self.graphXDecay(self.nullPressure, "Least Squares Pressures")
+		# self.graphXDecay(self.nullPressure, "Least Squares Pressures")
 
 	# def checkSolution(self):
 
-
+	#readds back a value that I removed in the past 
 	def normalizeVals(self):
-		self.svdResu = self.resultSVDResu[0]
+		self.svdResu = self.resultSVDResu[0][:]
 		self.svdResu =  np.insert(self.svdResu, NUM_PORTS/2, 1)
 		self.leastSqResu = np.insert(self.leastSqResu, NUM_PORTS/2,1)
 

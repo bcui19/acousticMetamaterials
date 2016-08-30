@@ -23,14 +23,19 @@ SIM_THREE = [0, 0, 1, 1]
 SIM_FOUR = [0, 0, 0, 13]
 VELOCITY_MATRIX = [SIM_ONE, SIM_TWO, SIM_THREE, SIM_FOUR]
 VELOCITY_SOLUTION_MATRIX= [0] * NUM_CYCLES
+ORIG_ARR = [] #Used in getOriginalMatrix
+TRANS_ARR = [] #used in getTransmission
 
 def updateClass(numCycles, velocityMatrix):
-	global NUM_CYCLES
+	global NUM_CYCLES, VELOCITY_MATRIX, VELOCITY_SOLUTION_MATRIX, ORIG_ARR, TRANS_ARR
 	NUM_CYCLES = numCycles
-	global VELOCITY_MATRIX
+	# global VELOCITY_MATRIX
 	VELOCITY_MATRIX = velocityMatrix
-	global VELOCITY_SOLUTION_MATRIX
+	# global VELOCITY_SOLUTION_MATRIX
 	VELOCITY_SOLUTION_MATRIX = [complex(0, 0)] * NUM_CYCLES
+	ORIG_ARR = [2*i +1 for i in range(NUM_CYCLES/2)]
+	TRANS_ARR = [2*i for i in range(NUM_CYCLES/2)]
+
 
 class independentMatrix(gim.identityTransformation):
 	def getOrigMatrix(self, freq):
@@ -39,10 +44,13 @@ class independentMatrix(gim.identityTransformation):
 			tempArr = [0]*NUM_CYCLES
 			press2 = self.tm[NUM_CYCLES + i][freq]
 			tempArr[0] = press2[press2.keys()[0]] #there will only be one key
-			press4 = self.tm[NUM_CYCLES*3 + i][freq]
-			tempArr[2] = press4[press4.keys()[0]]
+			if NUM_CYCLES == 4:
+				press4 = self.tm[NUM_CYCLES*3 + i][freq]
+				tempArr[2] = press4[press4.keys()[0]]
 
-			for j in [1, 3]:
+			# print "Velocity Matrix is: ", VELOCITY_MATRIX
+
+			for j in ORIG_ARR:
 				tempArr[j] = VELOCITY_MATRIX[i][j]
 
 			arrStor.append(tempArr)
@@ -69,7 +77,7 @@ class independentMatrix(gim.identityTransformation):
 			# if currFreq == 2528.0:
 				# continue
 			solArr = []
-			for j in [0, 2]:
+			for j in TRANS_ARR:
 				presSol = self.getPressureMatrix(j, currFreq)
 				velSol = self.getVelocityMatrix(j, currFreq)
 				# print "pressure Solution is: ", presSol

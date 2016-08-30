@@ -19,9 +19,9 @@ using namespace Eigen;
 
 //define variable numbers
 const int NUM_PORTS = 11;
-const int NUM_DETECTORS = 100;
+const int NUM_DETECTORS = 5;
 const int DETECTOR_MID = 0;
-const int NUM_ROWS = 100;
+const int NUM_ROWS = 10;
 
 
 //Define spacing constants
@@ -139,6 +139,7 @@ static void runCalculation() {
 
 	int samplingPoint = 0;
 
+	cout << "result is: " << endl;
 	for (int freq = FREQ_LOW; freq < FREQ_HIGH; freq += 12) {
 		createDistanceDict(distanceDict, constDict, freq);
 		createDifferences(constDict, diffDict);
@@ -150,6 +151,8 @@ static void runCalculation() {
 
 		MatrixXcd constMatrix = generateMatrix(constDict);
 
+		cout << "rhs is: " << rhs << endl;
+
 		// cout << "Matrix dimensions are: " << constMatrix.cols() << " Cols and " << constMatrix.rows() << " rows" << endl;
 		// cout << "vector dimensions are: " << normalized.rows() << " Rows and " << normalized.cols() << endl;
 		VectorXcd pressureVec = constMatrix * normalized;
@@ -158,9 +161,12 @@ static void runCalculation() {
 		// cout << constMatrix(samplingPoint) << endl;
 		// }
 
-		for (int i = 0; i < NUM_DETECTORS; i ++) {
-			cout << pressureVec(samplingPoint * NUM_DETECTORS + i).real() << endl;
-		}
+		// cout << "the resultant vector is: " << normalized << endl;
+
+		// for (int i = 0; i < NUM_DETECTORS; i ++) {
+		// 	cout << "real is: " << pressureVec(samplingPoint * NUM_DETECTORS + i).real() << " ";
+		// 	cout << "imag is: " << pressureVec(samplingPoint * NUM_DETECTORS + i).imag() << endl;
+		// }
 
 	}
 }
@@ -231,7 +237,7 @@ static void createDifferences(map <int, map <detector, vector <detectConst> > > 
 
 		detector refDetector = currKeys[NUM_DETECTORS/2];
 		vector <detectConst> refVector = currMap[refDetector];
-		cout << "ref detector Y loc is: " << refDetector.returnY() << endl;
+		// cout << "ref detector Y loc is: " << refDetector.returnY() << endl;
 
 		map <detector, vector <detectConst> > tempResuMap;
 
@@ -295,6 +301,7 @@ static MatrixXcd reduceMatrix(MatrixXcd &matrix) {
 
 static VectorXcd leastSquaresSolve(MatrixXcd diffMatrix, VectorXcd rhs) {
 	return diffMatrix.jacobiSvd(ComputeThinU |ComputeThinV).solve(rhs);
+	// return (diffMatrix.transpose() * diffMatrix).ldlt().solve(diffMatrix.transpose() * rhs);
 }
 
 static VectorXcd renormalizeResult(VectorXcd vector) {

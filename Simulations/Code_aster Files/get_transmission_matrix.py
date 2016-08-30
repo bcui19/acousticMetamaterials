@@ -9,7 +9,7 @@ Thus, each column represents the pressure results of a simulation
 Currently assumes all such <v0, v1, v2, v3> are 0 except one number 
 which is non zero
 
-Thus the produced matrix is a nice copy of the stored pressure values for each simulation
+Thus the produced matrix is a 'nice' copy of the stored pressure values for each simulation
 '''
 
 
@@ -38,6 +38,8 @@ VELOCITY_MATRIX = [ARR_ONE, ARR_TWO]#, ARR_THREE, ARR_FOUR]
 
 #Helper to initialize array 
 def initializeArr():
+	global ARR_INDEX
+	ARR_INDEX = []
 	for i in range(NUM_CYCLES):
 		counter = NUM_CYCLES - i
 		tempArr = []
@@ -45,7 +47,7 @@ def initializeArr():
 			tempArr.append(1 if counter % NUM_CYCLES == 0 else 0)
 			counter += 1
 		ARR_INDEX.append(tempArr)
-	print ARR_INDEX
+	print "ARR_INDEX is ", ARR_INDEX
 
 
 #Helper function to strip the last value within a list of the next line sign
@@ -53,6 +55,8 @@ def stripEnd(line):
 	line = line.strip("\n")
 	return line
 
+#helper function that will update the overall instance of get_transmission_matrix
+#such that it satisfies the constraints of the person calling the function 
 class updateClass(object):
 	def __init__(self, numCycles, velocityMatrix):
 		global NUM_CYCLES
@@ -70,7 +74,7 @@ class transmissionMatrix(object):
 		self.getListenNode(listenNode)
 		self.args = self.loadFilenames(filename)
 		self.getAster()
-		# self.writeOutput(outputfile)
+		self.writeOutput(outputfile)
 
 
 	#from the filename path, load all of the filenames that will need to be read into a list
@@ -112,6 +116,7 @@ class transmissionMatrix(object):
 		fieldnames = ["Frequency", "Real", "Imaginary"]
 		writer = csv.DictWriter(csvfile, fieldnames = fieldnames)
 		writer.writeheader()
+		# print self.transmission[index]
 		for freq in self.transmission[index]:
 			tempKey = self.transmission[index][freq].keys()[0] #only one key 
 			real, imag = self.getArgs(self.transmission[index][freq][tempKey])
@@ -126,6 +131,7 @@ class transmissionMatrix(object):
 	def returnTransmissionMatrix(self):
 		return self.transmission
 
+	#returns a list of the listennodes
 	def returnListNodes(self):
 		return self.listenNodes
 
@@ -174,16 +180,18 @@ class transmissionMatrix(object):
 			if key != self.listenNodes[counter % NUM_CYCLES]:
 				continue
 			# nodeDict[key] = float(node[key][0])/self.inputVelocity #use this to get strictly the real or strictly the imaginary component
+			# print "key is: ", key
 			nodeDict[key] = complex(float(node[key][0]), float(node[key][1]))/self.inputVelocity
 		return nodeDict
 
 	#finds the "dot product" between an array and the pressure vector
 	#done in order to properly create the vector 
 	def dotProduct(self, currFreq, presVect, parity, transMatrix):
-		arr = self.getArr(parity)
+		arr = self.getArr(parity) #arr is always a length of 16
 		# print len(arr)
 		tempMatrix = copy.copy(transMatrix)
 		counter = 0
+		# print "arrsize is: ", len(arr)
 		for i in range(len(arr)):
 			if arr[i] == 0:
 				continue
@@ -191,7 +199,7 @@ class transmissionMatrix(object):
 			currIndex = copy.copy(tempMatrix[i]) #gets the dictionary for the current transmission matrix
 			currIndex[currFreq] = nodeDict
 			tempMatrix[i] = currIndex
-			counter += 1
+			counter += 1 #counter allows us to get the correct key
 		return tempMatrix
 
 
@@ -200,13 +208,13 @@ class transmissionMatrix(object):
 
 
 
+
 def main():
-	initializeArr()
 	fileDirectory = "Paper/Paper Copy Actual Size"
 	tempOutput = "temp"
 	tm = transmissionMatrix(fileDirectory + "/paperCheck.txt", fileDirectory, "collimator listennode.txt", tempOutput, 1)
 	rtm = tm.returnTransmissionMatrix()
-	# print rtm
+
 	# coalesce.runCoalesce(tempOutput, "coalesced", fileDirectory)
 	# fileDirectory = "Paper/Paper Copy Actual Size"
 	# tempOutput = "temp"

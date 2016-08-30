@@ -1,2 +1,0 @@
-v2_0,1/test_output.resu
-v2_1,0/test_output.resu

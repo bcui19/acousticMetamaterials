@@ -40,8 +40,8 @@ struct connectionPair {
 
 
 //Constants for coding
-const string DIRECTORY = "Paper/Two Cells identity checks/";
-const string SUB_DIR = "v5,5/";
+const string DIRECTORY = "Paper/Unit Cell 2 Ports/";
+const string SUB_DIR = "v1,1";
 const string TRANSMISSION_VALUES = DIRECTORY + "coalesced transmission values.csv";
 const string TRANSMISSION_WEIGHTS = DIRECTORY + "calculated transmission values.csv";
 const string TRANSMISSION_PRIME = DIRECTORY + "transmission prime values.csv";
@@ -53,11 +53,11 @@ const string CLOSEDFILE = DIRECTORY + "closedPorts.txt";
 const string CONNECTIONFILE = DIRECTORY + "connectionPorts.txt";
 
 const int NUM_CYCLES = 4; //Input transmission Matrix dimensions
-const int NUM_STRUCTURES = 2; //Defines the number of linked structures
+const int NUM_STRUCTURES = 1; //Defines the number of linked structures
 
 // const int MATRIX_DIM = pow(NUM_CYCLES,2); // Dimension of the final matrix
 const int MATRIX_DIM = NUM_STRUCTURES*(2*NUM_CYCLES); //Dimensions of the final matrix
-const int NUM_CLOSED = 4;
+const int NUM_CLOSED = 2;
 const int NUM_PORTS = 2;
 vector <int> CLOSED_VECTOR, PORT_VECTOR;
 vector<connectionPair> CONNECTION_VECTOR; //determines which ports are connected
@@ -182,7 +182,8 @@ static void systemSolve(map<string, vector <double> > currMap, map<string, Vecto
 	VectorXcd tempresu;
 	VectorXcd tempSol;
 
-	for (map<string, vector<double> >:: iterator itm = currMap.begin(); itm != next(currMap.begin(), 1); itm ++) {
+	// for (map<string, vector<double> >:: iterator itm = currMap.begin(); itm != next(currMap.begin(), 1); itm ++) {
+	for (map<string, vector <double> > :: iterator itm = currMap.begin(); itm != currMap.end(); itm ++){
 		// cout << "frequency is: " << itm->first << endl;
 		MatrixXcd finalMatrix = MatrixXcd::Zero(MATRIX_DIM, MATRIX_DIM);
 		generateSingleMatrix(itm->first, currMap, finalMatrix); // pass in the current key to the map
@@ -195,7 +196,7 @@ static void systemSolve(map<string, vector <double> > currMap, map<string, Vecto
 		// cout << "Solution Vector is: " << solutionVector << endl << "Solution matrix is: " << finalMatrix << endl;
 		VectorXcd resultVector = finalMatrix.colPivHouseholderQr().solve(solutionVector);
 
-		cout << resultVector << endl << endl;
+		// cout << resultVector << endl << endl;
 		// cout << "solutionVector is: " << solutionVector << endl << endl << endl;
 		// cout << "solving matrix is: " << finalMatrix << endl << endl << endl;
 		resultMap[itm->first] = resultVector;
@@ -214,7 +215,7 @@ static void systemSolve(map<string, vector <double> > currMap, map<string, Vecto
 //currently only updates a singular entry 
 static void generateSolutionVector(VectorXcd &solutionVector, int iterationNum) {
 	// solutionVector[MATRIX_DIM - 1] = complex <double> (1.0, 5.0);
-	solutionVector[MATRIX_DIM - NUM_PORTS + iterationNum] = 5;
+	solutionVector[MATRIX_DIM - NUM_PORTS + iterationNum] = 1;
 	// solutionVector[MATRIX_DIM - 2] = 1;
 	// solutionVector[MATRIX_DIM-1] = 1;
 }
@@ -233,7 +234,7 @@ static void generateClosedPorts(MatrixXcd & closedMatrix) {
 
 //Given a connectionPair struct, update the matrix so the given parameters are satisfied
 static void updateConnectionMatrix(MatrixXcd & connectionMatrix, int row, connectionPair currPair, int connectionCounter) {
-	cout << "connection pair is: " << currPair.first << " , " << currPair.second << endl;
+	// cout << "connection pair is: " << currPair.first << " , " << currPair.second << endl;
 	int presCol = getPressure_Col(currPair.first);
 	int presCol_next = getPressure_Col(currPair.second);
 	connectionMatrix(2*row, presCol) = 1;

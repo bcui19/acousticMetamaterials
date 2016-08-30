@@ -1,0 +1,6 @@
+for N inputs and N outputs:
+	- generate a 2Nx2N matrix 
+1. read siggraph paper
+2. implement it for a simple 1 input 1 output:
+	- can work with this and manipulate the transmission Matrix from Diying's code 
+	- can cross check with his code 

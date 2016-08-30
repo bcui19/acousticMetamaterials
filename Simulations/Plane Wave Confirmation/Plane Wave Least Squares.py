@@ -52,7 +52,7 @@ class leastSquaresWave(waveCalculation.runCalculation):
 
 	def constructRHS(self):
 		self.rhs = [-self.diffMatrix[i][(NUM_PORTS)/2] for i in range(len(self.diffMatrix))]
-		print "rhs is: ", self.rhs
+		# print "rhs is: ", self.rhs
 
 # def calculatePressure(self):
 # 		self.pressureDict = {}

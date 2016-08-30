@@ -1,0 +1,18 @@
+Assumpitions:
+	- when the spherical wave reaches the collimator in each individual unit cell it acts as a planar wave
+	- In free space phase velocity is speed of sound
+	- No reflection off of the structure? 
+	- The time at which the wave strikes all N ports is the same, but the waves properties are still calculated as such 
+	- according to book since we define the spherical wave in terms of velocity and pressure, but velocity can be described in terms of pressure, then the A term must be the same for both, as such we can determine the phase for the waves
+
+
+
+	-setup:
+		- first calculate a unit cell using code_aster
+		- input that into the cpp code to generate the nport system (input files regarding connection, closed, and input ports should be the same)
+		- generate the transmission matrix based upon simple simulations for velocity 
+		- generate transmission prime matrix:
+			- given the n input ports we can take some input, and generate approximations for the velocities and pressures
+			- from here we can use the transmission prime matrix and generate the output velocities and pressures:
+				Two checks:
+					- if the phase and velocity at each port has the same phase 
