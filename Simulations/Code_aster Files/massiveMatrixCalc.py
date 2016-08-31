@@ -1,5 +1,22 @@
-massiveLinking = __import__("master linking file")
+'''
+The code in here takes all of the subdirectories in a folder and tries to 
+generate all of the transmission and transmission prime matricies
+that are associated with each set of simulations
 
+The code then calls the infinite Calculation module in order to get 
+the transmission matrix for a unit cell in the case of an infinite plane e.g.
+
+
+[P_1] = T[P2]
+[V_1]	 [V2]
+
+Note that this transmission matrix dotted with itself should be equal to the identity matrix
+
+
+'''
+
+#all of the imports
+massiveLinking = __import__("master linking file")
 infiniteCalc = __import__("Infinite Calculation")
 import os
 import csv
@@ -8,13 +25,8 @@ import numpy as np
 import calcEffectiveParams as calcParams
 
 
-#numpy plotting modules
-# from mpl_toolkits.mplot3d import Axes3D
-# from matplotlib import cm
-# import matplotlib.pyplot as plt
-
 #file linked names
-initSubDir = "pillar_simulations/test"
+initSubDir = "pillar_simulations/test" #the initial folder that is looked at for other subfolders for simulations
 simulationFile = "paperCheck.txt"
 listennode = "collimator listennode.txt"  #"New Dimensions Listennode.txt"
 testno = "Paper Actual Size"   #"New Dimensions Unit Cell v1"
@@ -26,23 +38,19 @@ exportFile = Result_DIR + "/density and modulus"
 
 NUM_SIMULATIONS = 4
 
-ARR_ONE = [1, 0, 0, 0]#, 0, 0, 0, 0]
-ARR_TWO = [0, 1, 0, 0]#, 0, 0, 0, 0]
-ARR_THREE = [0, 0, 1, 0]#, 0, 0, 0, 0]
-ARR_FOUR = [0, 0, 0, 1]#, 0, 0, 0, 0]
-# ARR_FIVE = [0, 0, 0, 0, 1, 0, 0, 0]
-# ARR_SIX = [0, 0, 0, 0, 0, 1, 0, 0]
-# ARR_SEVEN = [0, 0, 0, 0, 0, 0, 1, 0]
-# ARR_EIGHT = [0, 0, 0, 0, 0, 0, 0, 1]
+ARR_ONE = [1, 0, 0, 0]
+ARR_TWO = [0, 1, 0, 0]
+ARR_THREE = [0, 0, 1, 0]
+ARR_FOUR = [0, 0, 0, 1]
 VELOCITY_MATRIX = [ARR_ONE, ARR_TWO, ARR_THREE, ARR_FOUR]#, ARR_FIVE, ARR_SIX, ARR_SEVEN, ARR_EIGHT]
 VELOCITY_VECTOR = [0] * NUM_SIMULATIONS #Used in finding the independent matrix
-NEW_VELOCITIES = [12, 13, 4, 3]#, 7, 6, 1, 9] #used in crossValidation -- needs to be changed to match the length of the velocity
+NEW_VELOCITIES = [12, 13, 4, 3] #used in crossValidation -- needs to be changed to match the length of the velocity
 
-
+#simulation constants used for parameter sweeping optimization
 AIR_RHO = 1.3
 AIR_BULK_MODULUS = 1.42*10**5
 
-# velocities = ["0v1,0,0,0", "0v0,1,0,0", "0v0,0,1,0", "0v0,0,0,1", "1v1,0,0,0", "1v0,1,0,0", "1v0,0,1,0", "1v0,0,0,1"]
+#velocity filenames that need to be read
 velocities = ["v1,0,0,0", "v0,1,0,0", "v0,0,1,0", "v0,0,0,1"]
 output_params = ["S11", "S12", "S21", "S22"]
 
@@ -72,6 +80,7 @@ class massiveMatrixCalculation:
 
 		self.displayResu()
 
+	#called to get the nearest density/modulus depending upon the input index
 	def nearestDensity(self, currVal, dBool, index):
 		diffVal = abs(currVal - AIR_RHO if dBool == 1 else currVal - AIR_BULK_MODULUS)
 		currNeighborNum = self.numNeighbors_Density if dBool == 1 else self.numNeighbors_Modulus
@@ -88,7 +97,8 @@ class massiveMatrixCalculation:
 		return (diffVal, False)
 
 
-
+	#displays the final results of the simulations
+	#uses a nearest neighbor approach to get the optimal simulations
 	def displayResu(self):
 		#nearest neighbor features
 
@@ -106,6 +116,7 @@ class massiveMatrixCalculation:
 		self.maxDiff_Density = 10000000000
 		self.maxDiff_Modulus = 10000000000
 
+		#indexInitilization
 		diffIndex = 0
 		maxIndex = 0
 		minIndex = 0
@@ -135,19 +146,16 @@ class massiveMatrixCalculation:
 					self.numNeighbors_Density += 1
 
 			currVal = self.lambdaResu[i]
-			print "modulus right now is: ", currVal
+			
 			#update modulus
 			nearestVal = self.nearestDensity(currVal, 0, i)
 			if nearestVal[1]:
-				# print "updating modulus"
-				print "modulus is: ", nearestVal[0]
 				nearestVal_Count += 1
 				self.minDiff_Modulus = nearestVal[0] if nearestVal[0] < self.minDiff_Modulus else self.minDiff_Modulus
 				self.maxDiff_Modulus = nearestVal[0] if nearestVal[0] > self.maxDiff_Modulus else self.maxDiff_Modulus
 				if self.numNeighbors_Modulus == self.maxNeighbors:
 					self.nearestNeighbors_Modulus.pop(self.maxNeighbors-1)
 				resuTuple = (nearestVal[0], currVal, i)
-				print resuTuple[0]
 				self.nearestNeighbors_Modulus.append(resuTuple)
 				self.nearestNeighbors_Modulus = sorted(self.nearestNeighbors_Modulus, key = lambda currVal: currVal[0])
 
@@ -176,19 +184,16 @@ class massiveMatrixCalculation:
 		print "nearestVal count is: ", nearestVal_Count
 		print "correct simulations are: ", len(self.RList)
 
+	#runs the calculations for the transmission, transmission prime and infinite calculation matrix
 	def runCalculations(self):
 		self.correctSim = []
 		for subdir in self.subdirs:
-                    try:
-			self.runSingleCalculation(subdir)
-                    except IOError as e:
-                        print "I think this is a caching error"
-		# for i in range(3 *len(self.subdirs)/4, len(self.subdirs)):
-			# self.runSingleCalculation(self.subdirs[i])
+			try:
+				self.runSingleCalculation(subdir)
+			except IOError as e:
+				print "I think this is a caching error"
 
-		# for i in range(len(self.subdirs)):
-			# self.runSingleCalculation(self.subdirs[i])
-
+	#runs a single calculation 
 	def runSingleCalculation(self, subdir):
 		try:
 		    self.massiveUpdates(subdir)
@@ -197,36 +202,33 @@ class massiveMatrixCalculation:
 		    self.rtm = linkedData.returnTransmissionMatrix()
 		    infinitePlane = infiniteCalc.infiniteCalc(linkedData.returnWeights(), self.frequencies)
 
-		    # print "rtm is: \n", self.rtm
-		    # print "weights are: \n", linkedData.returnWeights()[10000.0]
 
 		    infiniteResult = infinitePlane.returnResult()
 		    tprimecalc = infiniteCalc.calculateTransmissionMatrix(infiniteResult, self.frequencies)
 		    self.tprime = tprimecalc.returnTPrime()
 
-		    # print self.tprime
+
 
 		    self.writeSingleResultCSV(subdir)
 		    self.writeBinaryFile(subdir)
 
 		    curTuple = (self.tprime, subdir)
 		    self.concatenatedList.append(copy.copy(curTuple))
-		# self.validateMatricies(subdir)
-                except IndexError as e:
-                    print "index error in massive linking most likely"
+		# self.validateMatricies(subdir) #call this code for validation if you want
+		except IndexError as e:
+			print "index error in massive linking most likely"
+
 		try:
-                    self.extractParams(Result_DIR, subdir)
-                except AttributeError as e:
-                    print "no attribute, something went wrong"
-                except IOError as e:
-                    print "code aster did something wrong"
+			self.extractParams(Result_DIR, subdir)
+		except AttributeError as e:
+			print "no attribute, something went wrong"
+		except IOError as e:
+			print "code aster did something wrong"
 
 		self.correctSim.append(subdir)
-		return True
 		# except IndexError as e:
 		# 	self.failure += 1
 		# 	print "There's an index error in the transmission matrix"
-		# 	return False
 		# except IOError as e:
 		# 	self.failure += 1
 		# 	print "There was an IOError, not sure why this happened"
@@ -269,21 +271,22 @@ class massiveMatrixCalculation:
 		of = open(outputFile, "w")
 		of.write(fileExport)
 
+	#outputs the transmission matrix as a binary file
 	def writeBinaryFile(self, subdir):
 		outputfile = os.path.join(self.outputDir, subdir)
-                try:
-                    np.save(outputfile, self.tprime[10000.0])
-                except KeyError as e:
-                    print "there is a key error"
+		try:
+			np.save(outputfile, self.tprime[10000.0])
+		except KeyError as e:
+			print "there is a key error"
 
+	#creates a dictionray to be used in outputting a CSV file
 	def createSingleResultDict(self, freq):
 		self.currDict = {}
 		for i in range(len(self.tprime[freq])*2):
-			# print self.tprime[freq][0 if i < 2 else 1][0 if i == 0 or i == 2 else 1]
 			self.currDict[output_params[i]] = self.tprime[freq][0 if i < 2 else 1][0 if i == 0 or i == 2 else 1]
 			self.currDict["freq"] = freq
-		# print self.currDict
 
+	#outputs a single transmission matrix as a CSV
 	def writeSingleResultCSV(self, subdir):
 		if not os.path.exists(self.outputDir):
 			os.makedirs(self.outputDir)
@@ -296,6 +299,7 @@ class massiveMatrixCalculation:
 			self.createSingleResultDict(freq)
 			writer.writerow(self.currDict)
 
+	#used to output the infinite transmission matrix as a CSV file
 	def createCurrResultDict(self, currTuple, csvWriter):
 		self.tempDict = {"geometry" : currTuple[1]}
 		currDict = currTuple[0]
@@ -306,6 +310,7 @@ class massiveMatrixCalculation:
 				self.tempDict[output_params[i]] = currArr[0 if i == 0 or i == 2 else 1]
 			csvWriter.writerow(self.tempDict)
 
+	#outputs all of the transmission matrix as a CSV file
 	def writeConcatenatedOutput(self):
 		if not os.path.exists(self.outputDir):
 			os.makedirs(self.outputDir)
@@ -318,6 +323,8 @@ class massiveMatrixCalculation:
 		for currTuple in self.concatenatedList:
 			self.createCurrResultDict(currTuple, writer)
 
+	#just prints out the matrix time by itself for each frequency
+	#in the infinite plane case, the dot product of the matrix and itself should be the identity matrix
 	def validateMatricies(self, subdir):
 		print "current subdir is: ", subdir
 		for matrix in self.concatenatedList:
@@ -325,18 +332,10 @@ class massiveMatrixCalculation:
 			for freq in currDict:
 				currMatrix = currDict[freq]
 				print "for freq: ", freq
-				# print "matrix is: \n", currMatrix
-				# invMatrix = np.linalg.inv(currMatrix)
-				# print "inverse matrix is:", invMatrix
 				print "the product of the matrix and itself is: "
 				print np.dot(currMatrix, currMatrix)
-				# print "the product of the matrix and its inverse is: "
-				# print np.dot(currMatrix, invMatrix)
-				# if np.allclose(currMatrix, invMatrix, atol = 1e-3) or np.allclose(invMatrix, currMatrix, atol = 1e-3):
-				# 	print "The matricies are close in value"
-				# else:
-				# 	print "the matricies are not close"
 
+	#code called to extract density and bulk modulus out of the transmission matrix
 	def extractParams(self, subdir, filename):
 		calcParams.updateClass(subdir)
 		self.dir = os.path.dirname(__file__)
@@ -345,13 +344,17 @@ class massiveMatrixCalculation:
 		self.rhoResu.append(paramCalc.returnRho())
 		self.lambdaResu.append(paramCalc.returnLambda())
 		self.LList.append(paramCalc.returnL())
-		# print "self.LList[0] is: ", self.LList[0]
-		# print "type of L is: ", type(self.LList[0])
 		self.HList.append(paramCalc.returnH())
                 self.RList.append(paramCalc.R)
                 self.VList.append(paramCalc.V)
                 
-		# print type(self.HList[0])
 
 if __name__ == "__main__":
 	massiveMatrixCalculation()
+
+
+
+
+
+
+

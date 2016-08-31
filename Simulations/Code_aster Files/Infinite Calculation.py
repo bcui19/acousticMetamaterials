@@ -1,10 +1,22 @@
 '''
 Assuming that we are working with a unit cell
 on an infinite plane, try to derrive the transmission matrix
-for the n port system
+for the n port system (currently it is coded to be 2 ports)
+
+Assuming that we already have the transmission matrix for a unit cell
+This code tries to solve the linear system:
+
+
+[I           ,         -T       ][PressureVector]   [0]
+[Connected Pressure Relationship][VelocityVector] = [0]
+[Connected Velocity Relationship]				    .
+[Simulation Parameters          ]					[1]
+
+For more details see (Dingzeyu et al. 2015)
+
 '''
 
-
+#imports
 massiveLinking = __import__("master linking file")
 calcPrime = __import__("Independent Matrix")
 import get_identity_matrix as gim
@@ -13,7 +25,7 @@ import numpy as np
 import copy
 gtw = __import__("get transmission weights")
 
-NUM_CYCLES = 4 #represents the nnumber of simulations 
+NUM_CYCLES = 4 #represents the number of simulations 
 
 ARR_ONE = [1, 0, 0, 0]
 ARR_TWO = [0, 1, 0, 0]
@@ -37,8 +49,9 @@ identityOutput = TESTNO + "transmission prime values" #outputs transmission prim
 weightsOutput = TESTNO + "calculated transmission values" #outputs the transmission matrix values 
 impedanceOutput = TESTNO + "calculated impedance" #output impedance CSV
 
-PRESSURE_INDEX = [1, 3] #indexes that are connected ports
-PRESSURE_RESU = [0 , 2]
+#Indexing for the resultant matrix
+PRESSURE_INDEX = [1, 3] #indexes for pressure that are connected ports
+PRESSURE_RESU = [0 , 2] #indexes for the pressure that are resultant values
 VELOCITY_INDEX = [5, 7] #indexes that are connected ports
 VELOCITY_INPUT = [4, 6] #indexes for the ports that have an input velocity 
 VELOCITY_RESU = [6,7] #the indexes in the right hand side that we define the velocities for 
@@ -47,8 +60,8 @@ VELOCITY_RESU = [6,7] #the indexes in the right hand side that we define the vel
 #defining new constants when needed 
 NEW_NUM_CYCLES = 2
 
-ARR_ONE = [1 , 0]
-ARR_TWO = [0 , 1]
+ARR_ONE = [1 , 0] #new simulation values that we are using
+ARR_TWO = [0 , 1] 
 NEW_VELOCITY_VECTOR = [0] * NEW_NUM_CYCLES
 NEW_VELOCITY_MATRIX = [ARR_ONE, ARR_TWO]
 
@@ -61,28 +74,28 @@ class infiniteCalc:
 		self.getIdentity() #gets the identity matrix
 		self.solveSystem()
 
+	#creates the identity matrix
 	def getIdentity(self):
 		self.identity = []
 		for i in range(NUM_CYCLES):
 			self.identity.append([complex(1,0) if i == j else complex(0,0) for j in range(NUM_CYCLES)])
-		# print "Identity matrix is: ", self.identity
 
+	#wrapper function to solve the infinite plane equation
 	def solveSystem(self):
 		self.resultStor = {}
 		for freq in self.frequencies:
 			self.simStor = []
 			for i in range(NUM_CYCLES/2):
-				# print "i is: ", i
 				self.generateMatrix(i, freq)
 			self.resultStor[freq] = self.simStor
 
+	#generates the matrix that we are using in the linear system
 	def generateMatrix(self, index, freq):
 		self.matrix = []
 		self.matrix += self.generateTransmission(freq)
 		self.matrix += self.getConstraints()
 		for i in range(NUM_CYCLES/2):
 			result = self.createVelocity(index, i)
-			# print "result is: ", type(result)
 			self.matrix.append(result)
 
 		self.createRHS(index)
@@ -90,7 +103,7 @@ class infiniteCalc:
 		self.simStor.append(self.result)
 		self.printMatrixInfo()
 
-
+	#just some printing code for confirmation
 	def printMatrixInfo(self):
 		print "matrix is: \n"
 		for i in range(NUM_CYCLES*2):
@@ -100,6 +113,7 @@ class infiniteCalc:
 		for i in range(len(self.result)):
 			print self.result[i]
 
+	#generates the first 4 rows of the matrix 
 	def generateTransmission(self, freq):
 		returnMatrix = []
 		for i in range(NUM_CYCLES):
@@ -114,6 +128,7 @@ class infiniteCalc:
 	def velocityConstraints(self):
 		return [0 if i not in VELOCITY_INDEX else 1 for i in range(NUM_CYCLES*2)]
 
+	#wrapper code for pressure and velocity constraints
 	def getConstraints(self):
 		returnList = []
 		returnList.append(self.pressureConstraints())
@@ -121,20 +136,23 @@ class infiniteCalc:
 		return returnList
 
 	#creates the last two rows of the matrix
-	#represents the 
+	#represents the two new simulations
 	def createVelocity(self, index, currIndex):
 		return [0 if i != VELOCITY_INPUT[currIndex] else 1 for i in range(NUM_CYCLES*2)]
 
+	#creates the right hand side of the linear system
 	def createRHS(self, index):
 		self.rhs = [0 if i != VELOCITY_RESU[index] else 1 for i in range(NUM_CYCLES*2)]
 
 	def returnResult(self):
 		return self.resultStor
 
+#class that calculates the new tprime value based on the infinite calculation velocity and pressure values
+#
 class calculateTransmissionMatrix:
 	def __init__(self, infiniteResult, frequencies):
 		self.infiniteResult = infiniteResult
-		self.frequencies = [44.0]
+		self.frequencies = frequencies
 		self.extractVals()
 		gtw.updateClass(NEW_NUM_CYCLES, NEW_VELOCITY_MATRIX)
 		# print self.tm
@@ -147,15 +165,10 @@ class calculateTransmissionMatrix:
 		tPrime = calcPrime.independentMatrix(self.tm, self.frequencies, NEW_VELOCITY_VECTOR)
 
 		self.tPrime = tPrime.returnTransmission()
-		# print np.dot(self.tPrime[44.0], self.tPrime[44.0])
 
-	# def validateIdentity(self):
-		# for freq in self.tPrime:
-
-
+	#from the input infinite calculation, extract out the input and outpute velocity and pressure values
+	#rearranges it into the typical self.tm data structure
 	def extractVals(self):
-		# print "self.infiniteResult is: ", self.infiniteResult
-
 		self.tm = [{}] * NUM_CYCLES
 		for i in range(NUM_CYCLES/2):
 			for j in range(len(PRESSURE_RESU)):
@@ -175,15 +188,14 @@ if __name__ == "__main__":
 	linkedData = massiveLinking.massiveLinking()
 	frequencies = linkedData.returnWeights().keys()
 	rtm = linkedData.returnTransmissionMatrix()
-	# print rtm[1]
-	# print frequencies
+
+
 	infinitePlane = infiniteCalc(linkedData.returnWeights(), frequencies)
 	infiniteResult = infinitePlane.returnResult()
 	calculateTransmissionMatrix(infiniteResult, frequencies)
-	# print infinitePlane.returnResult()[44.0][0]
-	# print infinitePlane.returnResult()[44.0][1]
 
-	# print 0
+
+
 
 
 

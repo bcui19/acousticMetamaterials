@@ -9,3 +9,6 @@ Calculations/
 myeigenTests/
 Papers/
 Proofs/
+*.swp
+
+
