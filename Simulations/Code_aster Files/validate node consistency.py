@@ -1,3 +1,9 @@
+'''
+Class validates 
+
+'''
+
+
 import get_transmission_matrix as gtm
 import copy
 import os

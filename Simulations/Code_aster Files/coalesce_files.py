@@ -1,4 +1,4 @@
-#separate file that will be run to concatonate files
+#separate file that will be run to concatonate files from the transmsision matrix
 
 import os
 import csv

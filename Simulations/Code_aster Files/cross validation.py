@@ -2,7 +2,8 @@
 Looks at both transmission matrices 
 and given a new set of velocities
 determines if the solution given by numpy is valid
-by checking if the values for both transmission matricies match 
+by checking if the values for the transmission and transmission
+prime matrix match 
 '''
 import get_transmission_matrix as gtm
 import numpy as np
@@ -39,6 +40,9 @@ def updateClass(numCylces, velocityMatrix, newVelocities):
 	print "NUM_CYCLES is: ", NUM_CYCLES
 	print "Velocities is: ", VELOCITIES
 
+
+#cross validation is called in order to make sure that the transmsission and 
+#transmission prime matrix are close in value
 class crossValidation(object):
 	def __init__(self, transmissionWeights, transmissionPrime, newVelocities):
 		self.tw = transmissionWeights
@@ -64,8 +68,6 @@ class crossValidation(object):
 	#validate that the calculated new pressures are correct
 	def validatePressure(self, freq):
 		self.generatePV()
-		# print "curr self.tp is: ", self.tp[freq] 
-		# print "curr self.curPV is: ", self.curPV
 		self.calcPV = np.dot(self.tp[freq], self.curPV)
 		self.checkPV()
 
@@ -73,6 +75,7 @@ class crossValidation(object):
 		self.generatePV_Init()
 		self.generatePV_Resu()
 
+	#wrapper function to check the pressure and velocity values
 	def checkPV(self):
 		for index in range(len(self.resuPV)):
 			if (self.checkReal(index) != 0):
@@ -83,10 +86,8 @@ class crossValidation(object):
 			# 	continue
 		# print "nothing seems wrong" #does a check, and if it doesn't hit this then we're good 
 
+	#checks the real components
 	def checkReal(self, index):
-		# print "self.resuPV[index] is: ", self.resuPV[index]
-		# print "self.curPressure is: ", self.curPressure
-		# print "self.curPressure size is: ", self.curPressure.size
 		if abs(self.resuPV[index].real - self.calcPV[index].real) > NODE_REAL:
 			print "Real failure"
 			print "Index is: ", index
@@ -95,7 +96,7 @@ class crossValidation(object):
 			print "dif is: ", abs(self.resuPV[index].real - self.calcPV[index].real)
 			return -1
 		return 0
-
+	#checks the imaginary components
 	def checkImag(self, index):
 		if abs(self.resuPV[index].imag - self.calcPV[index].imag) > NODE_IMAG:
 			print "Imag failure"
@@ -154,4 +155,16 @@ def main():
 
 	print 0 #used to signal end
 
-# main()
+
+if __name__ == "__main__":
+	main()
+
+
+
+
+
+
+
+
+
+

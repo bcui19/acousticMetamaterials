@@ -91,7 +91,8 @@ class getTransmissionWeights(object):
 			currMatrix = self.weights[freq]
 			self.averageMatrix(currMatrix, freq)
 
-	#averages the matrix for a given frequenc
+	#averages the matrix for a given frequency
+	#helpful in infinite calculations to make sure everything is uniform 
 	def averageMatrix(self, currMatrix, freq):
 		tempArr = [0] * NUM_CYCLES
 		for i in range(NUM_CYCLES):
@@ -99,7 +100,7 @@ class getTransmissionWeights(object):
 				tempArr[j] += currMatrix[i][(j+i)%NUM_CYCLES]
 		tempArr = [tempArr[i]/NUM_CYCLES for i in range(NUM_CYCLES)]
 		newArr = []
-		#used to make sure the matrix is uniform due to symmetry
+		#used to make sure the matrix is uniform from symmetry
 		for i in range(NUM_CYCLES):
 			newArr.append(tempArr[:])
 		self.weights[freq] = newArr[:]

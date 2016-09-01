@@ -1,5 +1,5 @@
 '''
-Working on parsing out code aster files
+Parses out the code aster files
 '''
 
 
@@ -117,5 +117,6 @@ def main(filename):
 	intxDict, presDict = file.getDicts()
 	return intxDict, presDict
 
-# main()
+if __name__ == "__main__":
+	main()
 

@@ -35,6 +35,7 @@ def updateClass(numCylces):
 	global NUM_CYCLES
 	NUM_CYCLES = numCylces
 
+#class to calculate the impedance for a 2 port system
 class calcImpedance(object):
 	def __init__(self, weights, exportFile):
 		self.weights = weights

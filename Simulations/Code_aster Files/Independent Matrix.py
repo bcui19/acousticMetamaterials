@@ -17,6 +17,7 @@ fileNames = "paperCheck.txt"
 listennode = "collimator listennode.txt"
 exportFile = "Computed identity vals temp"
 
+#represeents the velocities of the simulations 
 SIM_ONE = [1, 0, 0, 0]
 SIM_TWO = [0, 17, 0, 0]
 SIM_THREE = [0, 0, 1, 1]
@@ -26,6 +27,8 @@ VELOCITY_SOLUTION_MATRIX= [0] * NUM_CYCLES
 ORIG_ARR = [] #Used in getOriginalMatrix
 TRANS_ARR = [] #used in getTransmission
 
+#updates the class with appropriate values so that functionality 
+#will be correct
 def updateClass(numCycles, velocityMatrix):
 	global NUM_CYCLES, VELOCITY_MATRIX, VELOCITY_SOLUTION_MATRIX, ORIG_ARR, TRANS_ARR
 	NUM_CYCLES = numCycles
@@ -36,8 +39,12 @@ def updateClass(numCycles, velocityMatrix):
 	ORIG_ARR = [2*i +1 for i in range(NUM_CYCLES/2)]
 	TRANS_ARR = [2*i for i in range(NUM_CYCLES/2)]
 
-
+#imports the structure from get_identity_matrix module identityTransformation class
+#calculates the tprime matrix 
 class independentMatrix(gim.identityTransformation):
+	#takes the pressure values from self.tm and velocity values from simulations
+	#and puts them into a matrix
+	#that will be used to generate the tprime matrix
 	def getOrigMatrix(self, freq):
 		arrStor = []
 		for i in range(NUM_CYCLES):
@@ -48,15 +55,13 @@ class independentMatrix(gim.identityTransformation):
 				press4 = self.tm[NUM_CYCLES*3 + i][freq]
 				tempArr[2] = press4[press4.keys()[0]]
 
-			# print "Velocity Matrix is: ", VELOCITY_MATRIX
-
 			for j in ORIG_ARR:
 				tempArr[j] = VELOCITY_MATRIX[i][j]
 
 			arrStor.append(tempArr)
-		# print "arrStor is: ", arrStor
 		return arrStor
 
+	#gets the velocity component of the transmission matrix
 	def getVelocityMatrix(self, index, freq):
 		origMatrix = self.getOrigMatrix(freq)
 		solutionMatrix = VELOCITY_SOLUTION_MATRIX[:]
@@ -66,22 +71,17 @@ class independentMatrix(gim.identityTransformation):
 			if index == 2:
 				solutionMatrix[i] = VELOCITY_MATRIX[i][2]
 
-		# print "Velocity Vector is: ", solutionMatrix
-		# print "Orig Matrix is: ", origMatrix
 		return np.linalg.solve(origMatrix, solutionMatrix)
 
-
+	#gets the transmission matrix, and stores each transmission matrix
+	#in a map with the key being its corresponding frequency 
 	def getTransmission(self):
 		self.identityDict = {}
 		for currFreq in self.freq:
-			# if currFreq == 2528.0:
-				# continue
 			solArr = []
 			for j in TRANS_ARR:
 				presSol = self.getPressureMatrix(j, currFreq)
 				velSol = self.getVelocityMatrix(j, currFreq)
-				# print "pressure Solution is: ", presSol
-				# print "Velocity Solution is: ", velSol
 				solArr.append(presSol)
 				solArr.append(velSol)
 
@@ -106,4 +106,5 @@ def main():
 	identityDict = identity.returnTransmission()
 	gim.exportIdentity(identityDict, fileDirectory, exportFile)
 	
-# main()
+if __name__ == "__main__":
+	main()

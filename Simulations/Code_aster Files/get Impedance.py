@@ -17,12 +17,9 @@ VELOCITY_ONE = [complex(1,0), complex(0,0), complex(0,0), complex(0,0)]
 VELOCITY_TWO = [complex(0,0), complex(1,0), complex(0,0), complex(0,0)]
 VELOCITY_THREE = [complex(0,0), complex(0,0), complex(1,0), complex(0,0)]
 VELOCITY_FOUR = [complex(0,0), complex(0,0), complex(0,0), complex(1,0)]
-# VELOCITY_FIVE = [complex(0,0), complex(0,0), complex(0,0), complex(0,0), complex(1,0), complex(0,0)]
-# VELOCITY_SIX = [complex(0,0), complex(0,0), complex(0,0), complex(0,0), complex(0,0), complex(1,0)]
 
 VELOCITY_TOT = VELOCITY_ONE + VELOCITY_TWO + VELOCITY_THREE + VELOCITY_FOUR
 NUM_CYCLES = 4
-# print len(VELOCITY_TOT)
 print VELOCITY_TOT
 
 #define file constants
@@ -49,9 +46,7 @@ class acousticImpedance(object):
 				if VELOCITY_TOT[i] == 0:
 					continue
 				tempDict = self.tm[i][freq]
-				# val = tempDict[tempDict.keys()[0]]
 				tempList.append(tempDict[tempDict.keys()[0]]/VELOCITY_TOT[i]) #appends the log value 
-			# print len(tempList)
 			self.impedance[freq] = tempList
 
 	def generatefieldnames(self):
@@ -63,8 +58,6 @@ class acousticImpedance(object):
 			tempArr.append("Port " + str(i) + " imag")
 			self.matrix_fieldnames.append(tempArr)
 			self.fieldnames += tempArr
-		# print "matrix_fieldnames has dimensions: ", len(self.matrix_fieldnames)
-		# print "matrix_fieldnames dim is: ", len(self.matrix_fieldnames[0])
 
 	def generateDict(self, freq, writer):
 		# if freq > 1400.0:
@@ -92,4 +85,10 @@ def main():
 	rtm = tm.returnTransmissionMatrix()
 	acousticImpedance(rtm, impedanceFile)
 
-# main()
+
+if __name__ == "__main__":
+	main()
+
+
+
+

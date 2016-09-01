@@ -1,3 +1,18 @@
+'''
+This  module solves for the Tprime matrix which takes the form
+
+
+[P1]	 [P2]
+[V1] = 	T[V2]
+[P3]	 [P4]
+[V3]	 [V4]
+
+which is a linear transformation of the original transmission matrix
+
+NOTE: for a cleaer solution look at the "Independent Matrix" module
+
+'''
+
 import os 
 import copy
 import numpy as np
@@ -15,15 +30,16 @@ def updateClass(numCycles):
 	global NUM_CYCLES
 	NUM_CYCLES = numCycles
 
+#Class allows for solving of the tprime matrix
+#for a cleaner solution look at the 
 class identityTransformation(object):
 	def __init__(self, transmissionMatrix, frequencies, velocityMatrix):
 		self.tm = transmissionMatrix
 		self.velocityMatrix = velocityMatrix
-		# print "transmission matrix is: ", len(self.tm)
 		self.freq = frequencies
 		self.getTransmission()
 		self.simplifyIdentity()
-		# self.getPressureMatrix(0, 512.0)
+
 
 	def getOrigMatrix(self, freq):
 		arrStor = []

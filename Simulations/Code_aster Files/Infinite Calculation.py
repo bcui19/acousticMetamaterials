@@ -148,7 +148,7 @@ class infiniteCalc:
 		return self.resultStor
 
 #class that calculates the new tprime value based on the infinite calculation velocity and pressure values
-#
+#calls the independent matrix module, which will calcutae the tprime matrix 
 class calculateTransmissionMatrix:
 	def __init__(self, infiniteResult, frequencies):
 		self.infiniteResult = infiniteResult

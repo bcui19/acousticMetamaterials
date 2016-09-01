@@ -46,9 +46,9 @@ class validateIdentityMatrix(object):
 			if i == 1 or i == 3:
 				continue
 			if abs(self.calcPV[i].real - self.resuPV[i].real) > NODE_REAL:
-				print "we fucked up fam"
+				print "someting's wrong"
 			if abs(self.calcPV[i].imag - self.resuPV[i].imag) > NODE_IMAG:
-				print "we fucked up fam"
+				print "something's wrong"
 		return 0
 
 	def checkTPrime(self, freq):
@@ -58,7 +58,7 @@ class validateIdentityMatrix(object):
 			self.constructArrays(freq, i)
 			self.calcPV = np.dot(self.curTPrime, self.curPV)
 			if self.checkResult() != 0:
-				print "we fucked up fam"
+				print "something's wrong"
 
 
 

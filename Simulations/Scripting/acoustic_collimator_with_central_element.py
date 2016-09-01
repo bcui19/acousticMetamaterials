@@ -33,6 +33,7 @@ NUM_PORTS = 4
 
 OUTPUT_DIR = "pillar_simulations/biggerIt"
 
+#creates an acoustic collimator in teh geometry module
 class acousticCollimator:
     def __init__(self, H, L, cR, bottomVary):
         self.H = H
@@ -51,6 +52,7 @@ class acousticCollimator:
 
        geompy.addToStudy(self.unit_cell, "temp")
 
+    #makes 
     def makeCylinder(self):
         x = y = (CENTER_DIM - 2*self.L)/2
         pnt1 = geompy.MakeVertex(x, y, 0)
@@ -66,6 +68,7 @@ class acousticCollimator:
         pnt2 = geompy.MakeVertex(self.curCenterDim, self.curCenterDim, self.H) #self.H is the dimension to cover the height of the box
         self.centerBox = geompy.MakeBoxTwoPnt(pnt1, pnt2)
 
+    #creates teh surrounding smaller boxes
     def createSmallBoxes(self):
         self.geompyList = []
         self.difPoint = (self.curCenterDim-BOX_LENGTH)/2 #constant from origin to current point

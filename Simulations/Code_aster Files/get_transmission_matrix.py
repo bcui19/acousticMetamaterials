@@ -23,10 +23,6 @@ import csv
 import coalesce_files as coalesce
 
 #define constants
-# ARR_ZERO = np.matrix('1 0 0 0; 1 0 0 0; 1 0 0 0; 1 0 0 0')
-# ARR_ONE = np.matrix('0 1 0 0; 0 1 0 0; 0 1 0 0; 0 1 0 0')
-# ARR_TWO = np.matrix('0 0 1 0; 0 0 1 0; 0 0 1 0; 0 0 1 0')
-# ARR_THREE = np.matrix('0 0 0 1; 0 0 0 1; 0 0 0 1; 0 0 0 1')
 NUM_CYCLES = 4 #represents the number of ports
 ARR_INDEX = []
 
@@ -116,7 +112,6 @@ class transmissionMatrix(object):
 		fieldnames = ["Frequency", "Real", "Imaginary"]
 		writer = csv.DictWriter(csvfile, fieldnames = fieldnames)
 		writer.writeheader()
-		# print self.transmission[index]
 		for freq in self.transmission[index]:
 			tempKey = self.transmission[index][freq].keys()[0] #only one key 
 			real, imag = self.getArgs(self.transmission[index][freq][tempKey])
@@ -124,7 +119,7 @@ class transmissionMatrix(object):
 
 
 	#Helper function to get the proper array for dot producing the proper array
-	def getArr(self, parity): #lambda parity: ARR_ODD if parity % 2 == 0 else ARR_EVEN
+	def getArr(self, parity):
 		return ARR_INDEX[parity % NUM_CYCLES]
 
 	#returns the transmission matrix
@@ -165,7 +160,6 @@ class transmissionMatrix(object):
 		for i in range(len(dictKeys)):
 			currFreq = dictKeys[i]
 			currMatrix = self.createMatrix(currFreq, presDict[currFreq], parity, currMatrix)
-		# print currMatrix[3], "\n\n\n"
 
 		print "len of currMatrix is: ", len(currMatrix[0].keys()) #checking to make sure everything turns out legit
 		return currMatrix
@@ -176,11 +170,9 @@ class transmissionMatrix(object):
 		nodeDict = {}
 		for node in presVect:
 			key = node.keys()[0] #note there will only be one node 
-			# print node
 			if key != self.listenNodes[counter % NUM_CYCLES]:
 				continue
 			# nodeDict[key] = float(node[key][0])/self.inputVelocity #use this to get strictly the real or strictly the imaginary component
-			# print "key is: ", key
 			nodeDict[key] = complex(float(node[key][0]), float(node[key][1]))/self.inputVelocity
 		return nodeDict
 
@@ -191,7 +183,6 @@ class transmissionMatrix(object):
 		# print len(arr)
 		tempMatrix = copy.copy(transMatrix)
 		counter = 0
-		# print "arrsize is: ", len(arr)
 		for i in range(len(arr)):
 			if arr[i] == 0:
 				continue

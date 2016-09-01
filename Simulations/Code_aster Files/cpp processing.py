@@ -1,3 +1,11 @@
+'''
+From the cpp file where we're resolving for new boundary conditions
+this file allows for calculation of the transmission and transmission prime matrices
+
+
+NOTE: This module might be slightly incomplete
+'''
+
 #including import statments
 import csv 
 import os
@@ -153,6 +161,7 @@ class calculateTransmission(gtw.getTransmissionWeights):
 
 #class to go and get the transmission prime from the cpp values 
 #tm in this case is the tm generated from the cpp code
+#I don't think I ever finished this??? 
 class transmissionPrime(getIndependent.independentMatrix):
 	def __init__(self, transmissionMatrix, velocityVector, frequencies, presKeys):
 		self.tm = transmissionMatrix
